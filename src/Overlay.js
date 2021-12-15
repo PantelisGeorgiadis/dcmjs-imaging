@@ -228,7 +228,7 @@ class Overlay {
       const element = elementKeys[i];
       const tag = Tag.fromString(element);
       if (tag.element() === 0x0010) {
-        if (tag.group() >= 0x6000 && tag.group() <= 0x60ff) {
+        if (tag.group() >= 0x6000 && tag.group() <= 0x60ff && tag.group() % 2 === 0) {
           ret.push(new Overlay(image, tag.group()));
         }
       }

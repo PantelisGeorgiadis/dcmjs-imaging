@@ -33,7 +33,7 @@ const renderedPixels = image.render(frameIndex);
 // Create an ArrayBuffer with the contents of the DICOM P10 byte stream
 const image = new DicomImage(arrayBuffer);
 
-// Render image in an RGBA pixels ArrayBuffer
+// Render image in an RGBA pixels ArrayBuffer using a custom window/level
 const renderedPixels = image.render(0, new WindowLevel(windowWidth, windowLevel));
 ```
 Please check a live example [here][dcmjs-imaging-live-example-url].
@@ -54,4 +54,4 @@ dcmjs-imaging is released under the MIT License.
 [fo-dicom-url]: https://github.com/fo-dicom/fo-dicom
 [mdcm-url]: https://github.com/fo-dicom/mdcm
 
-[dcmjs-imaging-live-example-url]: https://github.com/PantelisGeorgiadis/dcmjs-dimse/wiki/Examples
+[dcmjs-imaging-live-example-url]: https://unpkg.com/dcmjs-imaging@latest/build/index.html
