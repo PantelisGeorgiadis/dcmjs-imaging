@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>dcmjs-imaging rendering example</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: table;
+      }
+      .container {
+        display: table-cell;
+        text-align: center;
+        vertical-align: middle;
+      }
+      .content {
+        display: inline-block;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="dropZone" class="container">
+      <div class="content">
+        <p id="infoText">
+          Drag and drop a DICOM Part 10 file to render it!<br />Nothing gets uploaded anywhere.
+        </p>
+        <canvas id="renderingcanvas"></canvas>
+      </div>
+    </div>
+  </body>
+  <script src="dcmjs-imaging.min.js"></script>
+  <script>
+    function renderFile(file) {
+      const reader = new FileReader();
+      reader.onload = function (file) {
+        const { DicomImage, WindowLevel } = window.dcmjsImaging;
+        const arrayBuffer = reader.result;
+
+        const canvasElement = document.getElementById('renderingcanvas');
+        canvasElement.onwheel = undefined;
+        canvasElement.onmousedown = undefined;
+        canvasElement.onmousemove = undefined;
+        canvasElement.onmouseup = undefined;
+        const infoTextElement = document.getElementById('infoText');
+        infoTextElement.innerText = '';
+
+        const t0 = performance.now();
+
+        let frame = 0;
+        let windowLevel = undefined;
+        let windowing = false;
+        let x = 0;
+        let y = 0;
+
+        const image = new DicomImage(arrayBuffer);
+        const windowLevels = WindowLevel.fromDicomImage(image);
+        if (windowLevels.length > 0) {
+          windowLevel = windowLevels[0];
+        }
+
+        const t1 = performance.now();
+        console.log('Parsing time: ' + (t1 - t0) + ' ms');
+        console.log('Width: ', image.getWidth());
+        console.log('Height: ', image.getHeight());
+        console.log('Number of frames: ', image.getNumberOfFrames());
+        console.log('Transfer syntax UID: ', image.getTransferSyntaxUid());
+
+        if (image.getNumberOfFrames() > 1) {
+          canvasElement.onwheel = (event) => {
+            event.preventDefault();
+
+            const next = event.deltaY > 0 ? 1 : -1;
+            if (frame + next > image.getNumberOfFrames() - 1 || frame + next < 0) {
+              return;
+            }
+
+            frame = frame + next;
+            renderFrame(image, frame, windowLevel, canvasElement, infoTextElement);
+          };
+        }
+
+        if (windowLevel) {
+          canvasElement.onmousedown = (event) => {
+            x = event.offsetX;
+            y = event.offsetY;
+            windowing = true;
+          };
+          canvasElement.onmousemove = (event) => {
+            if (windowing) {
+              const diffX = event.offsetX - x;
+              const diffY = event.offsetY - y;
+              x = event.offsetX;
+              y = event.offsetY;
+
+              const ww = windowLevel.getWindow();
+              const wl = windowLevel.getLevel();
+              windowLevel.setWindow(ww + diffX);
+              windowLevel.setLevel(wl + diffY);
+              renderFrame(image, frame, windowLevel, canvasElement, infoTextElement);
+            }
+          };
+          canvasElement.onmouseup = (event) => {
+            x = 0;
+            y = 0;
+            windowing = false;
+          };
+        }
+
+        renderFrame(image, frame, windowLevel, canvasElement, infoTextElement);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderFrame(image, frame, windowLevel, canvasElement, infoTextElement) {
+      const ctx = canvasElement.getContext('2d');
+      canvasElement.width = image.getWidth();
+      canvasElement.height = image.getHeight();
+      ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+      try {
+        const t0 = performance.now();
+        const renderedPixels = new Uint8Array(image.render(frame, windowLevel));
+        const t1 = performance.now();
+
+        const imageData = ctx.createImageData(image.getWidth(), image.getHeight());
+        const canvasPixels = imageData.data;
+        for (let i = 0; i < 4 * image.getWidth() * image.getHeight(); i++) {
+          canvasPixels[i] = renderedPixels[i];
+        }
+        ctx.putImageData(imageData, 0, 0);
+        const t2 = performance.now();
+
+        infoTextElement.innerHTML = '';
+        console.log('Rendering frame: ' + frame);
+        if (windowLevel) {
+          console.log('Rendering window: ' + windowLevel.toString());
+        }
+        console.log('Rendering time: ' + (t1 - t0) + ' ms');
+        console.log('Drawing time: ' + (t2 - t1) + ' ms');
+      } catch (err) {
+        infoTextElement.innerText = 'Error: ' + err.message;
+        throw err;
+      }
+    }
+
+    function handleFileSelect(evt) {
+      evt.stopPropagation();
+      evt.preventDefault();
+      const files = evt.dataTransfer.files;
+      renderFile(files[0]);
+    }
+
+    function handleDragOver(evt) {
+      evt.stopPropagation();
+      evt.preventDefault();
+      evt.dataTransfer.dropEffect = 'copy';
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', handleDragOver, false);
+    dropZone.addEventListener('drop', handleFileSelect, false);
+  </script>
+</html>
