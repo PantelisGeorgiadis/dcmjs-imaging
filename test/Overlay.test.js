@@ -1,6 +1,11 @@
 const Overlay = require('./../src/Overlay');
 const DicomImage = require('./../src/DicomImage');
-const { TransferSyntax } = require('./../src/Constants');
+const {
+  TransferSyntax,
+  PlanarConfiguration,
+  PhotometricInterpretation,
+  PixelRepresentation,
+} = require('./../src/Constants');
 
 const { arrayBuffersAreEqual } = require('./utils');
 
@@ -56,7 +61,6 @@ describe('Overlay', () => {
         60000050: [10, 20],
         60000100: 16,
         60000102: 8,
-        60000102: 8,
         60000022: 'DESCRIPTION',
         60000045: 'SUBTYPE',
         60001500: 'LABEL',
@@ -68,7 +72,6 @@ describe('Overlay', () => {
         '60F00040': 'TYPE',
         '60F00050': [10, 20],
         '60F00100': 16,
-        '60F00102': 8,
         '60F00102': 8,
         '60F00022': 'DESCRIPTION',
         '60F00045': 'SUBTYPE',
@@ -93,7 +96,7 @@ describe('Overlay', () => {
     expect(overlays2.length).to.be.eq(0);
   });
 
-  it('should throw for missing overlay parameters', () => {
+  it('should not throw for missing overlay parameters', () => {
     const image = new DicomImage(
       {
         '60F00010': 256,
@@ -105,7 +108,7 @@ describe('Overlay', () => {
     const firstOverlay = overlays[0];
     expect(() => {
       firstOverlay.render(undefined, 0, 0);
-    }).to.throw();
+    }).to.not.throw();
 
     const image2 = new DicomImage(
       {
@@ -119,6 +122,68 @@ describe('Overlay', () => {
     const firstOverlay2 = overlays2[0];
     expect(() => {
       firstOverlay2.render(undefined, 0, 0);
-    }).to.throw();
+    }).to.not.throw();
+  });
+
+  it('should correctly render an overlay', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const overlayData = new Uint8Array((width * height) / 8);
+    const overlayDataIndexes = [0, 3, 12, 15];
+    for (let i = 0; i < overlayDataIndexes.length; i++) {
+      const overlayDataIndex = overlayDataIndexes[i];
+      const byteIndex = Math.floor(overlayDataIndex / 8);
+      const bitIndex = overlayDataIndex - 8 * byteIndex;
+      const byteValue = overlayData[byteIndex];
+      const maskValue = 0x01 << bitIndex;
+      overlayData[byteIndex] = byteValue | maskValue;
+    }
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0xff, 0x00, 0xff,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0xff, 0x00, 0xff,
+      0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,
+      0xff, 0x00, 0xff,   0x00, 0x00, 0x00,   0x00, 0x00, 0x00,   0xff, 0x00, 0xff,
+    ]);
+    const image = new DicomImage(
+      {
+        Rows: height,
+        Columns: width,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PixelRepresentation: PixelRepresentation.Unsigned,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [pixels.buffer],
+        60000010: height,
+        60000011: width,
+        60000040: 'TYPE',
+        60000050: [1, 1],
+        60000100: 1,
+        60000102: 0,
+        60000022: 'DESCRIPTION',
+        60000045: 'SUBTYPE',
+        60001500: 'LABEL',
+        60000015: 1,
+        60000051: 1,
+        60003000: [overlayData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+
+    const renderedPixels = new Uint8Array(image.render());
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+    }
   });
 });

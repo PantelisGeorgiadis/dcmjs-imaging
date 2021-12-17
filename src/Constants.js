@@ -76,6 +76,16 @@ const PixelRepresentation = {
 Object.freeze(PixelRepresentation);
 //#endregion
 
+//#region Overlay color
+/**
+ * Overlay color.
+ * A: 0xff R: 0xff G: 0x00 B: 0xff
+ * @constant {number}
+ */
+const OverlayColor = (0xff << 0x18) | (0xff << 0x10) | (0x00 << 0x08) | 0xff;
+Object.freeze(OverlayColor);
+//#endregion
+
 //#region Exports
 module.exports = {
   TransferSyntax,
@@ -83,5 +93,6 @@ module.exports = {
   PhotometricInterpretation,
   PlanarConfiguration,
   PixelRepresentation,
+  OverlayColor,
 };
 //#endregion

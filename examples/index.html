@@ -39,12 +39,12 @@
   </body>
   <script src="dcmjs-imaging.min.js"></script>
   <script>
+    const { DicomImage, WindowLevel } = window.dcmjsImaging;
+
     function renderFile(file) {
       const reader = new FileReader();
       reader.onload = function (file) {
-        const { DicomImage, WindowLevel } = window.dcmjsImaging;
         const arrayBuffer = reader.result;
-
         const canvasElement = document.getElementById('renderingcanvas');
         canvasElement.onwheel = undefined;
         canvasElement.onmousedown = undefined;
@@ -56,16 +56,14 @@
         const t0 = performance.now();
 
         let frame = 0;
-        let windowLevel = undefined;
         let windowing = false;
         let x = 0;
         let y = 0;
 
         const image = new DicomImage(arrayBuffer);
         const windowLevels = WindowLevel.fromDicomImage(image);
-        if (windowLevels.length > 0) {
-          windowLevel = windowLevels[0];
-        }
+        const windowLevel =
+          windowLevels.length > 0 ? windowLevels[0] : createDefaultWindowLevel(image);
 
         const t1 = performance.now();
         console.log('Parsing time: ' + (t1 - t0) + ' ms');
@@ -150,6 +148,27 @@
         infoTextElement.innerText = 'Error: ' + err.message;
         throw err;
       }
+    }
+
+    function createDefaultWindowLevel(image) {
+      const photometricInterpretation = image.getElement('PhotometricInterpretation');
+      if (!photometricInterpretation) {
+        return;
+      }
+      if (['MONOCHROME1', 'MONOCHROME2'].indexOf(photometricInterpretation) == -1) {
+        return;
+      }
+      const bitsStored = image.getElement('BitsStored');
+      if (!bitsStored) {
+        return;
+      }
+      const pixelRepresentation = image.getElement('PixelRepresentation') || 0;
+      const signed = pixelRepresentation !== 0;
+
+      const minValue = signed ? -(1 << (bitsStored - 1)) : 0;
+      const maxValue = signed ? (1 << (bitsStored - 1)) - 1 : (1 << bitsStored) - 1;
+
+      return new WindowLevel(maxValue - minValue, (minValue + maxValue) / 2);
     }
 
     function handleFileSelect(evt) {

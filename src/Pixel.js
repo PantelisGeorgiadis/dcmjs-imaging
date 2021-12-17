@@ -20,12 +20,15 @@ class Pixel {
     this.bitsStored = image.getElement('BitsStored') || 0;
     this.bitsAllocated = image.getElement('BitsAllocated') || 0;
     this.highBit = image.getElement('HighBit') || this.bitsStored - 1;
-    this.samplesPerPixel = image.getElement('SamplesPerPixel') || 0;
+    this.samplesPerPixel = image.getElement('SamplesPerPixel') || 1;
     this.pixelRepresentation =
       image.getElement('PixelRepresentation') || PixelRepresentation.Unsigned;
     this.planarConfiguration =
       image.getElement('PlanarConfiguration') || PlanarConfiguration.Interleaved;
-    this.photometricInterpretation = image.getElement('PhotometricInterpretation');
+    const photometricInterpretation = image.getElement('PhotometricInterpretation');
+    this.photometricInterpretation = photometricInterpretation
+      ? photometricInterpretation.replace(/[^ -~]+/g, '').trim()
+      : '';
     this.rescaleSlope = image.getElement('RescaleSlope') || 1.0;
     this.rescaleIntercept = image.getElement('RescaleIntercept') || 0.0;
     this.pixelData = image.getElement('PixelData');
@@ -187,6 +190,9 @@ class Pixel {
    * @returns {number} Uncompressed frame size.
    */
   getUncompressedFrameSize() {
+    if (this.getBitsAllocated() === 1) {
+      return (this.getWidth() * this.getHeight() - 1) / 8 + 1;
+    }
     return (
       this.getWidth() * this.getHeight() * this.getBytesAllocated() * this.getSamplesPerPixel()
     );
@@ -323,9 +329,6 @@ class Pixel {
       throw new Error(
         `Bits allocated/stored has an invalid value [allocated: ${this.getBitsAllocated()}, stored: ${this.getBitsStored()}]`
       );
-    }
-    if (!this.getSamplesPerPixel()) {
-      throw new Error(`Samples per pixel has an invalid value [${this.getSamplesPerPixel()}]`);
     }
     if (!this.getPhotometricInterpretation()) {
       throw new Error(

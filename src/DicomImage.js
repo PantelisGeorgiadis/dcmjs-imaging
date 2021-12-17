@@ -1,4 +1,4 @@
-const { RenderableTransferSyntax, TransferSyntax } = require('./Constants');
+const { RenderableTransferSyntax, TransferSyntax, OverlayColor } = require('./Constants');
 const { Pixel, PixelPipeline } = require('./Pixel');
 const { LutPipeline } = require('./Lut');
 const WindowLevel = require('./WindowLevel');
@@ -253,7 +253,13 @@ class DicomImage {
       if (overlays.length > 0) {
         for (let i = 0; i < overlays.length; i++) {
           const overlay = overlays[i];
-          overlay.render(renderredPixels, this.getWidth(), this.getHeight());
+          if (
+            frame + 1 < overlay.getFrameOrigin() ||
+            frame + 1 > overlay.getFrameOrigin() + overlay.getNumberOfFrames() - 1
+          ) {
+            continue;
+          }
+          overlay.render(renderredPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
         }
       }
     }

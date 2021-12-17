@@ -112,27 +112,12 @@ describe('Pixel', () => {
 
     const image4 = new DicomImage(
       {
-        Rows: 128,
-        Columns: 128,
-        BitsAllocated: 8,
-        BitsStored: 8,
         PhotometricInterpretation: PhotometricInterpretation.Monochrome1,
-        PixelData: [Uint8Array.from([1, 2, 3, 4, 5]).buffer],
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
     expect(() => {
       image4.render();
-    }).to.throw();
-
-    const image5 = new DicomImage(
-      {
-        PhotometricInterpretation: PhotometricInterpretation.Monochrome1,
-      },
-      TransferSyntax.ImplicitVRLittleEndian
-    );
-    expect(() => {
-      image5.render();
     }).to.throw();
   });
 

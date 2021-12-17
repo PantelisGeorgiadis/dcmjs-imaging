@@ -166,19 +166,17 @@ class Overlay {
    * @param {Int32Array} renderredPixels - Rendered ABGR image to be updated with the overlay.
    * @param {number} width - Rendered image width.
    * @param {number} height - Rendered image height.
-   * @param {number} color - Overlay color packed in integer.
+   * @param {number} color - Overlay color packed in an integer.
    */
-  render(renderredPixels, width, height, color = 0xffff00ff) {
+  render(renderredPixels, width, height, color) {
     if (!this.getData()) {
-      throw new Error('Could not extract overlay data');
+      return;
     }
     if (!this.getWidth() || !this.getHeight()) {
-      throw new Error(
-        `Overlay width/height has an invalid value [w: ${this.getWidth()}, h: ${this.getHeight()}]`
-      );
+      return;
     }
     if (!this.getBitsAllocated()) {
-      throw new Error(`Overlay bits allocated has an invalid value [${this.getBitsAllocated()}]`);
+      return;
     }
 
     const overlayBuffers = this.getData();
@@ -193,8 +191,8 @@ class Overlay {
     );
     const data = singleBitPixelPipeline.render();
 
-    const ox = this.getOriginX();
-    const oy = this.getOriginY();
+    const ox = this.getOriginX() - 1;
+    const oy = this.getOriginY() - 1;
     const oh = this.getHeight();
     const ow = this.getWidth();
     for (let y = 0; y < oh; ++y) {
