@@ -9,7 +9,8 @@ const TransferSyntax = {
   DeflatedExplicitVRLittleEndian: '1.2.840.10008.1.2.1.99',
   ExplicitVRBigEndian: '1.2.840.10008.1.2.2',
   RleLossless: '1.2.840.10008.1.2.5',
-  JpegBaseline: '1.2.840.10008.1.2.4.50',
+  JpegBaselineProcess1: '1.2.840.10008.1.2.4.50',
+  JpegBaselineProcess2_4: '1.2.840.10008.1.2.4.51',
   JpegLossless: '1.2.840.10008.1.2.4.70',
   JpegLsLossless: '1.2.840.10008.1.2.4.80',
   JpegLsLossy: '1.2.840.10008.1.2.4.81',
@@ -19,17 +20,18 @@ const TransferSyntax = {
 Object.freeze(TransferSyntax);
 //#endregion
 
-//#region RenderableTransferSyntax
+//#region RenderableTransferSyntaxes
 /**
  * Transfer syntaxes that can be rendered.
- * @constant {Object}
+ * @constant {Array<TransferSyntax>}
  */
-const RenderableTransferSyntax = {
-  ImplicitVRLittleEndian: '1.2.840.10008.1.2',
-  ExplicitVRLittleEndian: '1.2.840.10008.1.2.1',
-  ExplicitVRBigEndian: '1.2.840.10008.1.2.2',
-};
-Object.freeze(RenderableTransferSyntax);
+const RenderableTransferSyntaxes = [
+  TransferSyntax.ImplicitVRLittleEndian,
+  TransferSyntax.ExplicitVRLittleEndian,
+  TransferSyntax.ExplicitVRBigEndian,
+  TransferSyntax.RleLossless,
+];
+Object.freeze(RenderableTransferSyntaxes);
 //#endregion
 
 //#region PhotometricInterpretation
@@ -89,7 +91,7 @@ Object.freeze(OverlayColor);
 //#region Exports
 module.exports = {
   TransferSyntax,
-  RenderableTransferSyntax,
+  RenderableTransferSyntaxes,
   PhotometricInterpretation,
   PlanarConfiguration,
   PixelRepresentation,

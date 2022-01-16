@@ -109,12 +109,14 @@ class WindowLevel {
         throw new Error(`Unable to parse window center/window width [wc: ${wc[i]}, ww: ${ww[i]}]`);
       }
 
-      let description = undefined;
-      if (descs !== undefined && i < descs.length) {
-        description = descs[i];
-      }
+      if (window >= 1) {
+        let description = undefined;
+        if (descs !== undefined && i < descs.length) {
+          description = descs[i];
+        }
 
-      ret.push(new WindowLevel(window, level, description));
+        ret.push(new WindowLevel(window, level, description));
+      }
     }
 
     return ret;

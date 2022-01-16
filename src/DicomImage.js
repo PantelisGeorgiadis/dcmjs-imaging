@@ -1,4 +1,4 @@
-const { RenderableTransferSyntax, TransferSyntax, OverlayColor } = require('./Constants');
+const { RenderableTransferSyntaxes, TransferSyntax, OverlayColor } = require('./Constants');
 const { Pixel, PixelPipeline } = require('./Pixel');
 const { LutPipeline } = require('./Lut');
 const WindowLevel = require('./WindowLevel');
@@ -226,7 +226,7 @@ class DicomImage {
    * @returns {Int32Array} Rendered ABGR pixels packed in integers.
    */
   _render(frame, windowLevel) {
-    if (!Object.values(RenderableTransferSyntax).includes(this.getTransferSyntaxUid())) {
+    if (!RenderableTransferSyntaxes.includes(this.getTransferSyntaxUid())) {
       throw new Error(
         `Transfer syntax cannot be currently rendered [${this.getTransferSyntaxUid()}]`
       );

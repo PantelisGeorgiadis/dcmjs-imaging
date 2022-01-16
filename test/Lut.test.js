@@ -67,7 +67,7 @@ describe('Lut', () => {
         continue;
       }
       const scale = (i - windowCenterMin05) / windowWidthMin1 + 0.5;
-      const value = Math.trunc(scale * 255);
+      const value = Math.trunc(scale * 255.0);
 
       expect(lut.getValue(i)).to.be.eq(value);
     }

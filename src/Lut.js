@@ -222,13 +222,13 @@ class VoiLinearLut extends Lut {
    */
   getValue(input) {
     if (input <= this.windowStart) {
-      return 0;
+      return this.getMinimumOutputValue();
     }
     if (input > this.windowEnd) {
-      return 255;
+      return this.getMaximumOutputValue();
     }
     const scale = (input - this.windowCenterMin05) / this.windowWidthMin1 + 0.5;
-    return Math.trunc(scale * 255);
+    return Math.trunc(scale * 255.0);
   }
 }
 //#endregion

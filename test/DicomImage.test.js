@@ -62,7 +62,7 @@ describe('DicomImage', () => {
       {
         PixelData: [Uint8Array.from([1, 2, 3, 4, 5]).buffer],
       },
-      TransferSyntax.Jpeg2000Lossless
+      TransferSyntax.JpegLsLossless
     );
 
     expect(() => {

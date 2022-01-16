@@ -5,6 +5,8 @@ const {
   TransferSyntax,
 } = require('./Constants');
 
+const RleDecoder = require('./RleDecoder');
+
 //#region Pixel
 class Pixel {
   /**
@@ -193,6 +195,16 @@ class Pixel {
     if (this.getBitsAllocated() === 1) {
       return (this.getWidth() * this.getHeight() - 1) / 8 + 1;
     }
+    if (this.getPhotometricInterpretation() == PhotometricInterpretation.YbrFull422) {
+      const syntax = this.getTransferSyntaxUid();
+      if (
+        syntax === TransferSyntax.ImplicitVRLittleEndian ||
+        syntax === TransferSyntax.ExplicitVRLittleEndian ||
+        syntax === TransferSyntax.ExplicitVRBigEndian
+      ) {
+        return this.getBytesAllocated() * 2 * this.getWidth() * this.getHeight();
+      }
+    }
     return (
       this.getWidth() * this.getHeight() * this.getBytesAllocated() * this.getSamplesPerPixel()
     );
@@ -363,9 +375,20 @@ class Pixel {
 
       return pixelBuffer.slice(frameOffset, frameOffset + frameSize);
     } else {
-      throw new Error(
-        `Transfer syntax cannot be currently decoded [${this.getTransferSyntaxUid()}]`
-      );
+      if (frame >= pixelBuffers.length) {
+        throw new Error(
+          `Requested frame is larger or equal to the pixel fragments number [frame: (${frame}), fragments: ${pixelBuffers.length}]`
+        );
+      }
+      // Assume that each fragment holds a complete frame
+      // which might not always be the case
+      if (this.getTransferSyntaxUid() === TransferSyntax.RleLossless) {
+        return PixelDecoder.decodeRle(this, new Uint8Array(pixelBuffers[frame]));
+      } else {
+        throw new Error(
+          `Transfer syntax cannot be currently decoded [${this.getTransferSyntaxUid()}]`
+        );
+      }
     }
   }
   //#endregion
@@ -782,6 +805,49 @@ class PixelConverter {
 }
 //#endregion
 
+//#region PixelDecoder
+class PixelDecoder {
+  /**
+   * Decodes an RLE frame.
+   * @method
+   *  @param {Pixel} pixel - Pixel object.
+   * @param {Uint8Array} data - Encoded pixels data.
+   * @returns {Uint8Array} Decoded pixels data.
+   */
+  /* c8 ignore start */
+  static decodeRle(pixel, data) {
+    let frameSize = pixel.getUncompressedFrameSize();
+    if ((frameSize & 1) == 1) {
+      ++frameSize;
+    }
+    const frameData = new Uint8Array(frameSize);
+    const pixelCount = pixel.getWidth() * pixel.getHeight();
+    const numberOfSegments = pixel.getBytesAllocated() * pixel.getSamplesPerPixel();
+    const decoder = new RleDecoder(data);
+    if (decoder.getNumberOfSegments() != numberOfSegments) {
+      throw new Error('Unexpected number of RLE segments');
+    }
+    for (let s = 0; s < numberOfSegments; s++) {
+      let pos, offset;
+      const sample = Math.trunc(s / pixel.getBytesAllocated());
+      const sabyte = Math.trunc(s % pixel.getBytesAllocated());
+      if (pixel.getPlanarConfiguration() === PlanarConfiguration.Interleaved) {
+        pos = sample * pixel.getBytesAllocated();
+        offset = pixel.getSamplesPerPixel() * pixel.getBytesAllocated();
+      } else {
+        pos = sample * pixel.getBytesAllocated() * pixelCount;
+        offset = pixel.getBytesAllocated();
+      }
+      pos += pixel.getBytesAllocated() - sabyte - 1;
+      decoder.decodeSegment(s, frameData, pos, offset);
+    }
+
+    return frameData;
+  }
+  /* c8 ignore stop */
+}
+//#endregion
+
 //#region Exports
 module.exports = {
   Pixel,
@@ -790,5 +856,6 @@ module.exports = {
   SingleBitPixelPipeline,
   ColorPixelPipeline,
   PixelConverter,
+  PixelDecoder,
 };
 //#endregion

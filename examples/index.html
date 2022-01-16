@@ -31,21 +31,21 @@
     <div id="dropZone" class="container">
       <div class="content">
         <p id="infoText">
-          Drag and drop a DICOM Part 10 file to render it!<br />Nothing gets uploaded anywhere.
+          <a id="openLink" href="">Open</a> or drag and drop a DICOM Part 10 file to render it!<br />Nothing
+          gets uploaded anywhere.
         </p>
-        <canvas id="renderingcanvas"></canvas>
+        <canvas id="renderingCanvas"></canvas>
       </div>
     </div>
   </body>
   <script src="dcmjs-imaging.min.js"></script>
   <script>
     const { DicomImage, WindowLevel } = window.dcmjsImaging;
-
     function renderFile(file) {
       const reader = new FileReader();
-      reader.onload = function (file) {
+      reader.onload = (file) => {
         const arrayBuffer = reader.result;
-        const canvasElement = document.getElementById('renderingcanvas');
+        const canvasElement = document.getElementById('renderingCanvas');
         canvasElement.onwheel = undefined;
         canvasElement.onmousedown = undefined;
         canvasElement.onmousemove = undefined;
@@ -155,7 +155,7 @@
       if (!photometricInterpretation) {
         return;
       }
-      if (['MONOCHROME1', 'MONOCHROME2'].indexOf(photometricInterpretation) == -1) {
+      if (['MONOCHROME1', 'MONOCHROME2'].indexOf(photometricInterpretation) === -1) {
         return;
       }
       const bitsStored = image.getElement('BitsStored');
@@ -171,21 +171,29 @@
       return new WindowLevel(maxValue - minValue, (minValue + maxValue) / 2);
     }
 
-    function handleFileSelect(evt) {
-      evt.stopPropagation();
-      evt.preventDefault();
-      const files = evt.dataTransfer.files;
-      renderFile(files[0]);
-    }
-
-    function handleDragOver(evt) {
-      evt.stopPropagation();
-      evt.preventDefault();
-      evt.dataTransfer.dropEffect = 'copy';
-    }
-
     const dropZone = document.getElementById('dropZone');
-    dropZone.addEventListener('dragover', handleDragOver, false);
-    dropZone.addEventListener('drop', handleFileSelect, false);
+    dropZone.ondragover = (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    };
+    dropZone.ondrop = (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const files = event.dataTransfer.files;
+      renderFile(files[0]);
+    };
+
+    const openLink = document.getElementById('openLink');
+    openLink.onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.onchange = (event) => {
+        const files = event.target.files;
+        renderFile(files[0]);
+      };
+      input.click();
+      return false;
+    };
   </script>
 </html>

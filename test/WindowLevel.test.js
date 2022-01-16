@@ -50,6 +50,13 @@ describe('WindowLevel', () => {
     expect(windowLevel3[0].getLevel()).to.be.eq(0.5);
     expect(windowLevel3[0].getWindow()).to.be.eq(1.1);
     expect(windowLevel3[0].getDescription()).to.be.undefined;
+
+    const image4 = new DicomImage({
+      WindowCenter: 0.5,
+      WindowWidth: 0.1,
+    });
+    const windowLevel4 = WindowLevel.fromDicomImage(image4);
+    expect(windowLevel4.length).to.be.eq(0);
   });
 
   it('should throw for not parsable window or level values', () => {

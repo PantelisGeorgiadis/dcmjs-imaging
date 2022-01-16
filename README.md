@@ -16,6 +16,12 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 	npm install
 	npm run build
 
+### Supported Transfer Syntaxes
+- Implicit VR Little Endian (1.2.840.10008.1.2)
+- Explicit VR Little Endian (1.2.840.10008.1.2.1)
+- Explicit VR Big Endian (1.2.840.10008.1.2.2)
+- RLE Lossless (1.2.840.10008.1.2.5)
+
 ### Usage
 
 #### Basic image rendering
