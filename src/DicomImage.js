@@ -1,6 +1,6 @@
 const { RenderableTransferSyntaxes, TransferSyntax, OverlayColor } = require('./Constants');
 const { Pixel, PixelPipeline } = require('./Pixel');
-const { LutPipeline } = require('./Lut');
+const { LutPipeline, GrayscaleLutPipeline } = require('./Lut');
 const WindowLevel = require('./WindowLevel');
 const Overlay = require('./Overlay');
 
@@ -18,7 +18,6 @@ class DicomImage {
    */
   constructor(elementsOrBuffer, transferSyntaxUid) {
     dcmjsLog.level = 'error';
-    this.renderOverlays = true;
 
     this.transferSyntaxUid = transferSyntaxUid || TransferSyntax.ImplicitVRLittleEndian;
     if (elementsOrBuffer instanceof ArrayBuffer) {
@@ -123,46 +122,29 @@ class DicomImage {
   }
 
   /**
-   * Gets whether to render overlays.
-   * @method
-   * @returns {boolean} Flag to indicate whether to render overlays.
+   * @typedef {Object} RenderingResult
+   * @property {number} frame - Rendered frame index.
+   * @property {ArrayBuffer} pixels - Rendered pixels RGBA array buffer.
+   * This format was chosen because it is suitable for rendering in a canvas object.
+   * @property {WindowLevel} windowLevel - Window/level used to render the pixels.
+   * @property {Array<Histogram>} histograms - Array of calculated per-channel histograms.
+   * Histograms are calculated using the original pixel values.
    */
-  getRenderOverlays() {
-    return this.renderOverlays;
-  }
 
   /**
-   * Sets whether to render overlays.
+   * Renders the image.
    * @method
-   * @param {boolean} render - Flag to indicate whether to render overlays.
+   * @param {Object} [opts] - Rendering options.
+   * @param {number} [opts.frame] - Frame index to render.
+   * @param {WindowLevel} [opts.windowLevel] - User provided window/level.
+   * @param {boolean} [opts.renderOverlays] - Flag to indicate whether to render overlays.
+   * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
+   * @returns {RenderingResult} Rendering result object.
    */
-  setRenderOverlays(render) {
-    this.renderOverlays = render;
-  }
+  render(opts) {
+    opts = opts || {};
 
-  /**
-   * Renders the image as an RGBA array buffer.
-   * This format was chosen because it is suitable for rendering
-   * in a canvas object.
-   * @method
-   * @param {number} [frame] - Frame index.
-   * @param {WindowLevel} [windowLevel] - User provided window/level.
-   * @returns {ArrayBuffer} Rendered pixels RGBA array buffer.
-   */
-  render(frame, windowLevel) {
-    const frameToRender = frame || 0;
-    const renderedPixels = this._render(frameToRender, windowLevel);
-
-    const rgbaPixels = new Uint8Array(4 * this.getWidth() * this.getHeight());
-    for (let i = 0, p = 0; i < this.getWidth() * this.getHeight(); i++) {
-      const pixel = renderedPixels[i];
-      rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
-      rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
-      rgbaPixels[p++] = pixel & 0xff;
-      rgbaPixels[p++] = 255;
-    }
-
-    return rgbaPixels.buffer;
+    return this._render(opts);
   }
 
   /**
@@ -218,37 +200,59 @@ class DicomImage {
   }
 
   /**
-   * Renders the image.
+   * Rendering implementation.
    * @method
    * @private
-   * @param {number} [frame] - Frame index.
-   * @param {WindowLevel} [windowLevel] - User provided window/level.
-   * @returns {Int32Array} Rendered ABGR pixels packed in integers.
+   * @param {Object} [opts] - Rendering options.
+   * @param {number} [opts.frame] - Frame index to render.
+   * @param {WindowLevel} [opts.windowLevel] - User provided window/level.
+   * @param {boolean} [opts.renderOverlays] - Flag to indicate whether to render overlays.
+   * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
+   * @returns {RenderingResult} Rendering result object.
    */
-  _render(frame, windowLevel) {
+  _render(opts) {
     if (!RenderableTransferSyntaxes.includes(this.getTransferSyntaxUid())) {
       throw new Error(
         `Transfer syntax cannot be currently rendered [${this.getTransferSyntaxUid()}]`
       );
     }
+    const frame = opts.frame || 0;
     if (frame < 0 || frame >= this.getNumberOfFrames()) {
       throw new Error(`Requested frame is out of range [${frame}]`);
     }
-    if (windowLevel && !(windowLevel instanceof WindowLevel)) {
-      throw new Error(`${windowLevel.toString()} is not a WindowLevel`);
+    if (opts.windowLevel && !(opts.windowLevel instanceof WindowLevel)) {
+      throw new Error(`${opts.windowLevel.toString()} is not a WindowLevel`);
     }
 
+    let histograms = undefined;
+    let windowLevel = undefined;
+    let renderingResult = {};
+
+    // LUT pipeline
     const pixel = new Pixel(this);
-    const lutPipeline = LutPipeline.create(this, pixel, windowLevel);
+    const lutPipeline = LutPipeline.create(this, pixel, opts.windowLevel, frame);
     const lut = lutPipeline.getLut();
     if (lut && !lut.isValid()) {
       lut.recalculate();
     }
+    if (lutPipeline instanceof GrayscaleLutPipeline) {
+      windowLevel = lutPipeline.getWindowLevel();
+    }
 
+    // Pixel pipeline
     const pixelPipeline = PixelPipeline.create(pixel, frame);
-    let renderredPixels = pixelPipeline.render(lut);
+    let renderedPixels = pixelPipeline.render(lut);
 
-    if (this.getRenderOverlays()) {
+    // Histograms
+    const calculateHistograms =
+      opts.calculateHistograms !== undefined ? opts.calculateHistograms : false;
+    if (calculateHistograms) {
+      histograms = pixelPipeline.calculateHistograms();
+    }
+
+    // Overlays
+    const renderOverlays = opts.renderOverlays !== undefined ? opts.renderOverlays : true;
+    if (renderOverlays) {
       const overlays = Overlay.fromDicomImage(this);
       if (overlays.length > 0) {
         for (let i = 0; i < overlays.length; i++) {
@@ -259,12 +263,32 @@ class DicomImage {
           ) {
             continue;
           }
-          overlay.render(renderredPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
+          overlay.render(renderedPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
         }
       }
     }
 
-    return renderredPixels;
+    // Packed pixels to RGBA
+    const rgbaPixels = new Uint8Array(4 * this.getWidth() * this.getHeight());
+    for (let i = 0, p = 0; i < this.getWidth() * this.getHeight(); i++) {
+      const pixel = renderedPixels[i];
+      rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
+      rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
+      rgbaPixels[p++] = pixel & 0xff;
+      rgbaPixels[p++] = 255;
+    }
+
+    // Rendering result
+    renderingResult.frame = frame;
+    renderingResult.pixels = rgbaPixels.buffer;
+    if (windowLevel) {
+      renderingResult.windowLevel = windowLevel;
+    }
+    if (histograms) {
+      renderingResult.histograms = histograms;
+    }
+
+    return renderingResult;
   }
   //#endregion
 }

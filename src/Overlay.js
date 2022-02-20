@@ -161,14 +161,14 @@ class Overlay {
   }
 
   /**
-   * Renders the overlay on top of a renderred image.
+   * Renders the overlay on top of a rendered image.
    * @method
-   * @param {Int32Array} renderredPixels - Rendered ABGR image to be updated with the overlay.
+   * @param {Int32Array} renderedPixels - Rendered ABGR image to be updated with the overlay.
    * @param {number} width - Rendered image width.
    * @param {number} height - Rendered image height.
    * @param {number} color - Overlay color packed in an integer.
    */
-  render(renderredPixels, width, height, color) {
+  render(renderedPixels, width, height, color) {
     if (!this.getData()) {
       return;
     }
@@ -204,7 +204,7 @@ class Overlay {
           if (ox + x >= width) {
             break;
           }
-          renderredPixels[p] |= color;
+          renderedPixels[p] |= color;
         }
       }
     }

@@ -2,7 +2,6 @@ const Overlay = require('./../src/Overlay');
 const DicomImage = require('./../src/DicomImage');
 const {
   TransferSyntax,
-  PlanarConfiguration,
   PhotometricInterpretation,
   PixelRepresentation,
 } = require('./../src/Constants');
@@ -161,6 +160,8 @@ describe('Overlay', () => {
         SamplesPerPixel: 1,
         PixelRepresentation: PixelRepresentation.Unsigned,
         PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        SmallestImagePixelValue: 0,
+        LargestImagePixelValue: Math.pow(2, 8) - 1,
         PixelData: [pixels.buffer],
         60000010: height,
         60000011: width,
@@ -178,7 +179,8 @@ describe('Overlay', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
 
-    const renderedPixels = new Uint8Array(image.render());
+    const renderingResult = image.render();
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);

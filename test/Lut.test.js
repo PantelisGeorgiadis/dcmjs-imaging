@@ -6,7 +6,7 @@ const {
   RgbColorLutPipeline,
   PaletteColorLutPipeline,
   RescaleLut,
-  VoiLinearLut,
+  VoiLut,
   InvertLut,
   OutputLut,
   CompositeLut,
@@ -38,10 +38,10 @@ describe('Lut', () => {
     }
   });
 
-  it('should return the correct values for VoiLinearLut', () => {
+  it('should return the correct values for VoiLut (LINEAR)', () => {
     const random = getRandomInteger(-65536, 65536);
     const windowLevel = new WindowLevel(random, random / 2);
-    const lut = new VoiLinearLut(windowLevel);
+    const lut = new VoiLut(windowLevel);
     lut.recalculate();
 
     expect(lut.getMinimumOutputValue()).to.be.eq(0);
@@ -53,21 +53,82 @@ describe('Lut', () => {
 
     const windowCenterMin05 = windowLevel.getLevel() - 0.5;
     const windowWidthMin1 = windowLevel.getWindow() - 1;
-    const windowWidthDiv2 = windowWidthMin1 / 2;
-    const windowStart = Math.trunc(windowCenterMin05 - windowWidthDiv2);
-    const windowEnd = Math.trunc(windowCenterMin05 + windowWidthDiv2);
 
     for (let i = -random; i <= random; i++) {
-      if (i <= windowStart) {
-        expect(lut.getValue(i)).to.be.eq(0);
+      const value = Math.trunc(
+        ((i - windowCenterMin05) / windowWidthMin1 + 0.5) * lut.getMaximumOutputValue() +
+          lut.getMinimumOutputValue()
+      );
+      if (value <= lut.getMinimumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMinimumOutputValue());
         continue;
       }
-      if (i > windowEnd) {
-        expect(lut.getValue(i)).to.be.eq(255);
+      if (value > lut.getMaximumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMaximumOutputValue());
         continue;
       }
-      const scale = (i - windowCenterMin05) / windowWidthMin1 + 0.5;
-      const value = Math.trunc(scale * 255.0);
+
+      expect(lut.getValue(i)).to.be.eq(value);
+    }
+  });
+
+  it('should return the correct values for VoiLut (LINEAR_EXACT)', () => {
+    const random = getRandomInteger(-65536, 65536);
+    const windowLevel = new WindowLevel(random, random / 2);
+    const lut = new VoiLut(windowLevel, 'LINEAR_EXACT');
+    lut.recalculate();
+
+    expect(lut.getMinimumOutputValue()).to.be.eq(0);
+    expect(lut.getMaximumOutputValue()).to.be.eq(255);
+
+    const windowLevel2 = lut.getWindowLevel();
+    expect(windowLevel2.getWindow()).to.be.eq(random);
+    expect(windowLevel2.getLevel()).to.be.eq(random / 2);
+
+    for (let i = -random; i <= random; i++) {
+      const value = Math.trunc(
+        ((i - windowLevel2.getLevel()) / windowLevel2.getWindow()) * lut.getMaximumOutputValue() +
+          lut.getMinimumOutputValue()
+      );
+      if (value <= lut.getMinimumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMinimumOutputValue());
+        continue;
+      }
+      if (value > lut.getMaximumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMaximumOutputValue());
+        continue;
+      }
+
+      expect(lut.getValue(i)).to.be.eq(value);
+    }
+  });
+
+  it('should return the correct values for VoiLut (SIGMOID)', () => {
+    const random = getRandomInteger(-65536, 65536);
+    const windowLevel = new WindowLevel(random, random / 2);
+    const lut = new VoiLut(windowLevel, 'SIGMOID');
+    lut.recalculate();
+
+    expect(lut.getMinimumOutputValue()).to.be.eq(0);
+    expect(lut.getMaximumOutputValue()).to.be.eq(255);
+
+    const windowLevel2 = lut.getWindowLevel();
+    expect(windowLevel2.getWindow()).to.be.eq(random);
+    expect(windowLevel2.getLevel()).to.be.eq(random / 2);
+
+    for (let i = -random; i <= random; i++) {
+      const value = Math.trunc(
+        lut.getMaximumOutputValue() /
+          (1.0 + Math.exp(-4.0 * ((i - windowLevel2.getLevel()) / windowLevel2.getWindow())))
+      );
+      if (value <= lut.getMinimumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMinimumOutputValue());
+        continue;
+      }
+      if (value > lut.getMaximumOutputValue()) {
+        expect(lut.getValue(i)).to.be.eq(lut.getMaximumOutputValue());
+        continue;
+      }
 
       expect(lut.getValue(i)).to.be.eq(value);
     }

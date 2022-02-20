@@ -71,14 +71,8 @@ class ColorMap {
    */
   static _getGrayscaleColorMap(reverse) {
     const colorMap = new Array(256);
-    if (reverse) {
-      for (let i = 0, b = 255; i < 256; i++, b--) {
-        colorMap[i] = (0xff << 0x18) | (b << 0x10) | (b << 0x08) | b;
-      }
-    } else {
-      for (let i = 0, b = 0; i < 256; i++, b++) {
-        colorMap[i] = (0xff << 0x18) | (b << 0x10) | (b << 0x08) | b;
-      }
+    for (let i = 0, b = reverse ? 255 : 0; i < 256; i++, reverse ? b-- : b++) {
+      colorMap[i] = (0xff << 0x18) | (b << 0x10) | (b << 0x08) | b;
     }
 
     return colorMap;

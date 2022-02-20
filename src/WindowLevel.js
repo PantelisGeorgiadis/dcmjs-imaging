@@ -114,7 +114,6 @@ class WindowLevel {
         if (descs !== undefined && i < descs.length) {
           description = descs[i];
         }
-
         ret.push(new WindowLevel(window, level, description));
       }
     }

@@ -11,7 +11,8 @@ function renderToBmp(dicomFile, bmpFile) {
     fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength)
   );
 
-  const renderedPixels = Buffer.from(image.render());
+  const renderingResult = image.render();
+  const renderedPixels = Buffer.from(renderingResult.pixels);
 
   // BMP lib expects ABGR and the rendering output is RGBA
   const argbPixels = Buffer.alloc(4 * image.getWidth() * image.getHeight());

@@ -4,6 +4,7 @@ const {
   PixelRepresentation,
   TransferSyntax,
 } = require('./Constants');
+const Histogram = require('./Histogram');
 
 const RleDecoder = require('./RleDecoder');
 
@@ -33,6 +34,10 @@ class Pixel {
       : '';
     this.rescaleSlope = image.getElement('RescaleSlope') || 1.0;
     this.rescaleIntercept = image.getElement('RescaleIntercept') || 0.0;
+    this.voiLutFunction = image.getElement('VOILUTFunction') || 'LINEAR';
+    this.smallestImagePixelValue = image.getElement('SmallestImagePixelValue');
+    this.largestImagePixelValue = image.getElement('LargestImagePixelValue');
+    this.pixelPaddingValue = image.getElement('PixelPaddingValue');
     this.pixelData = image.getElement('PixelData');
   }
 
@@ -100,6 +105,7 @@ class Pixel {
     if (this.getBitsAllocated() % 8 > 0) {
       bytes++;
     }
+
     return bytes;
   }
 
@@ -205,6 +211,7 @@ class Pixel {
         return this.getBytesAllocated() * 2 * this.getWidth() * this.getHeight();
       }
     }
+
     return (
       this.getWidth() * this.getHeight() * this.getBytesAllocated() * this.getSamplesPerPixel()
     );
@@ -229,6 +236,42 @@ class Pixel {
   }
 
   /**
+   * Gets the VOI LUT function.
+   * @method
+   * @returns {string} VOI LUT function.
+   */
+  getVoiLutFunction() {
+    return this.voiLutFunction;
+  }
+
+  /**
+   * Gets the smallest image pixel value.
+   * @method
+   * @returns {number} Smallest image pixel value.
+   */
+  getSmallestImagePixelValue() {
+    return this.smallestImagePixelValue;
+  }
+
+  /**
+   * Gets the largest image pixel value.
+   * @method
+   * @returns {number} Largest image pixel value.
+   */
+  getLargestImagePixelValue() {
+    return this.largestImagePixelValue;
+  }
+
+  /**
+   * Gets the pixel padding value.
+   * @method
+   * @returns {number} Pixel padding value.
+   */
+  getPixelPaddingValue() {
+    return this.pixelPaddingValue;
+  }
+
+  /**
    * Gets the pixel data.
    * @method
    * @returns {Array<ArrayBuffer>} Pixel data.
@@ -240,7 +283,7 @@ class Pixel {
   /**
    * Gets the pixel data as an array of unsigned byte values.
    * @method
-   *  @param {number} frame - Frame index.
+   * @param {number} frame - Frame index.
    * @returns {Uint8Array} Pixel data as an array of unsigned byte values.
    */
   getFrameDataU8(frame) {
@@ -270,16 +313,16 @@ class Pixel {
    * @returns {Int16Array} Pixel data as an array of signed short values.
    */
   getFrameDataS16(frame) {
-    const sign = 1 << this.getHighBit();
-    const mask = sign - 1;
-    const count = this.getWidth() * this.getHeight();
-
     const u16 = this.getFrameDataU16(frame);
-    const s16 = new Int16Array(count);
+    const s16 = new Int16Array(u16);
 
-    for (let p = 0; p < count; p++) {
-      const d = u16[p];
-      s16[p] = (d & sign) !== 0 ? -(d & mask) : d & mask;
+    if (this.getBitsStored() !== 16) {
+      const shiftLeft = this.getBitsAllocated() - this.getHighBit() - 1;
+      const shiftRight = this.getBitsAllocated() - this.getBitsStored();
+      for (let i = 0; i < s16.length; i++) {
+        s16[i] <<= shiftLeft;
+        s16[i] >>= shiftRight;
+      }
     }
 
     return s16;
@@ -364,7 +407,7 @@ class Pixel {
         this.getBitsStored() <= 16
       ) {
         for (let i = 0; i < pixelBuffer.length; i += 2) {
-          let holder = pixelBuffer[i];
+          const holder = pixelBuffer[i];
           pixelBuffer[i] = pixelBuffer[i + 1];
           pixelBuffer[i + 1] = holder;
         }
@@ -416,6 +459,24 @@ class PixelPipeline {
   }
 
   /**
+   * Gets the minimum pixel value.
+   * @method
+   * @returns {number} Minimum pixel value.
+   */
+  getMinimumPixelValue() {
+    throw new Error('getMinimumPixelValue should be implemented');
+  }
+
+  /**
+   * Gets the maximum pixel value.
+   * @method
+   * @returns {number} Maximum pixel value.
+   */
+  getMaximumPixelValue() {
+    throw new Error('getMaximumPixelValue should be implemented');
+  }
+
+  /**
    * Gets the image components.
    * @method
    * @returns {number} Components.
@@ -433,6 +494,15 @@ class PixelPipeline {
   // eslint-disable-next-line no-unused-vars
   render(lut) {
     throw new Error('render should be implemented');
+  }
+
+  /**
+   * Calculates histograms.
+   * @method
+   * @returns {Array<Histogram>} Calculated histograms.
+   */
+  calculateHistograms() {
+    throw new Error('calculateHistograms should be implemented');
   }
 
   /**
@@ -454,16 +524,21 @@ class PixelPipeline {
         return new GrayscalePixelPipeline(
           pixel.getWidth(),
           pixel.getHeight(),
+          pixel.getMinimumPixelValue(),
+          pixel.getMaximumPixelValue(),
           pixel.getFrameDataU8(frame)
         );
       } else if (pixel.getBitsStored() <= 16) {
         return new GrayscalePixelPipeline(
           pixel.getWidth(),
           pixel.getHeight(),
+          pixel.getMinimumPixelValue(),
+          pixel.getMaximumPixelValue(),
           pixel.isSigned() ? pixel.getFrameDataS16(frame) : pixel.getFrameDataU16(frame)
         );
-      } else
+      } else {
         throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
+      }
     } else if (
       photometricInterpretation == PhotometricInterpretation.Rgb ||
       photometricInterpretation == PhotometricInterpretation.YbrFull ||
@@ -481,7 +556,14 @@ class PixelPipeline {
       } else if (photometricInterpretation == PhotometricInterpretation.YbrPartial422) {
         pixels = PixelConverter.ybrPartial422ToRgb(pixels, pixel.getWidth());
       }
-      return new ColorPixelPipeline(pixel.getWidth(), pixel.getHeight(), pixels);
+
+      return new ColorPixelPipeline(
+        pixel.getWidth(),
+        pixel.getHeight(),
+        pixel.getMinimumPixelValue(),
+        pixel.getMaximumPixelValue(),
+        pixels
+      );
     } else {
       throw new Error(
         `Unsupported pixel data photometric interpretation: ${photometricInterpretation}`
@@ -498,12 +580,16 @@ class GrayscalePixelPipeline extends PixelPipeline {
    * @constructor
    * @param {number} width - Image width.
    * @param {number} height - Image height.
+   * @param {number} minimumPixelValue - Minimum pixel value.
+   * @param {number} maximumPixelValue - Maximum pixel value.
    * @param {Uint8Array|Uint16Array|Int16Array} data - Pixel data.
    */
-  constructor(width, height, data) {
+  constructor(width, height, minimumPixelValue, maximumPixelValue, data) {
     super();
     this.width = width;
     this.height = height;
+    this.minValue = minimumPixelValue;
+    this.maxValue = maximumPixelValue;
     this.data = data;
   }
 
@@ -523,6 +609,24 @@ class GrayscalePixelPipeline extends PixelPipeline {
    */
   getHeight() {
     return this.height;
+  }
+
+  /**
+   * Gets the minimum pixel value.
+   * @method
+   * @returns {number} Minimum pixel value.
+   */
+  getMinimumPixelValue() {
+    return this.minValue;
+  }
+
+  /**
+   * Gets the maximum pixel value.
+   * @method
+   * @returns {number} Maximum pixel value.
+   */
+  getMaximumPixelValue() {
+    return this.maxValue;
   }
 
   /**
@@ -558,6 +662,20 @@ class GrayscalePixelPipeline extends PixelPipeline {
 
     return output;
   }
+
+  /**
+   * Calculates histograms.
+   * @method
+   * @returns {Array<Histogram>} Calculated histograms.
+   */
+  calculateHistograms() {
+    const histogram = new Histogram('gray', this.minValue, this.maxValue);
+    for (let i = 0; i < this.data.length; i++) {
+      histogram.add(this.data[i]);
+    }
+
+    return [histogram];
+  }
 }
 //#endregion
 
@@ -571,7 +689,7 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
    * @param {Uint8Array} data - Pixel data.
    */
   constructor(width, height, data) {
-    super(width, height, SingleBitPixelPipeline._expandBits(width, height, data));
+    super(width, height, 0, 1, SingleBitPixelPipeline._expandBits(width, height, data));
   }
 
   /**
@@ -599,6 +717,20 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
 
     return output;
   }
+
+  /**
+   * Calculates histograms.
+   * @method
+   * @returns {Array<Histogram>} Calculated histograms.
+   */
+  calculateHistograms() {
+    const histogram = new Histogram('bit', this.minValue, this.maxValue);
+    for (let i = 0; i < this.data.length; i++) {
+      histogram.add(this.data[i]);
+    }
+
+    return [histogram];
+  }
 }
 
 //#region ColorPixelPipeline
@@ -608,12 +740,16 @@ class ColorPixelPipeline extends PixelPipeline {
    * @constructor
    * @param {number} width - Image width.
    * @param {number} height - Image height.
+   * @param {number} minimumPixelValue - Minimum pixel value.
+   * @param {number} maximumPixelValue - Maximum pixel value.
    * @param {Uint8Array} data - Pixel data.
    */
-  constructor(width, height, data) {
+  constructor(width, height, minimumPixelValue, maximumPixelValue, data) {
     super();
     this.width = width;
     this.height = height;
+    this.minValue = minimumPixelValue;
+    this.maxValue = maximumPixelValue;
     this.data = data;
   }
 
@@ -633,6 +769,24 @@ class ColorPixelPipeline extends PixelPipeline {
    */
   getHeight() {
     return this.height;
+  }
+
+  /**
+   * Gets the minimum pixel value.
+   * @method
+   * @returns {number} Minimum pixel value.
+   */
+  getMinimumPixelValue() {
+    return this.minValue;
+  }
+
+  /**
+   * Gets the maximum pixel value.
+   * @method
+   * @returns {number} Maximum pixel value.
+   */
+  getMaximumPixelValue() {
+    return this.maxValue;
   }
 
   /**
@@ -670,6 +824,25 @@ class ColorPixelPipeline extends PixelPipeline {
     }
 
     return output;
+  }
+
+  /**
+   * Calculates histograms.
+   * @method
+   * @returns {Array<Histogram>} Calculated histograms.
+   */
+  calculateHistograms() {
+    const redHistogram = new Histogram('red', this.minValue, this.maxValue);
+    const greenHistogram = new Histogram('green', this.minValue, this.maxValue);
+    const blueHistogram = new Histogram('blue', this.minValue, this.maxValue);
+
+    for (let i = 0; i < this.data.length; i += 3) {
+      redHistogram.add(this.data[i]);
+      greenHistogram.add(this.data[i + 1]);
+      blueHistogram.add(this.data[i + 2]);
+    }
+
+    return [redHistogram, greenHistogram, blueHistogram];
   }
 }
 //#endregion
@@ -810,7 +983,7 @@ class PixelDecoder {
   /**
    * Decodes an RLE frame.
    * @method
-   *  @param {Pixel} pixel - Pixel object.
+   * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
    * @returns {Uint8Array} Decoded pixels data.
    */

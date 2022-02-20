@@ -32,6 +32,9 @@ describe('Pixel', () => {
     const photometricInterpretation = PhotometricInterpretation.Monochrome2;
     const rescaleSlope = 1.1;
     const rescaleIntercept = 2.2;
+    const smallestImagePixelValue = 152;
+    const largestImagePixelValue = 1152;
+    const pixelPaddingValue = 2000;
     const pixelData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
 
     const image = new DicomImage(
@@ -48,6 +51,9 @@ describe('Pixel', () => {
         PhotometricInterpretation: photometricInterpretation,
         RescaleSlope: rescaleSlope,
         RescaleIntercept: rescaleIntercept,
+        SmallestImagePixelValue: smallestImagePixelValue,
+        LargestImagePixelValue: largestImagePixelValue,
+        PixelPaddingValue: pixelPaddingValue,
         PixelData: pixelData,
       },
       TransferSyntax.ImplicitVRLittleEndian
@@ -66,10 +72,14 @@ describe('Pixel', () => {
     expect(pixel.getPlanarConfiguration()).to.be.eq(planarConfiguration);
     expect(pixel.getPhotometricInterpretation()).to.be.eq(photometricInterpretation);
     expect(pixel.getRescaleSlope()).to.be.eq(rescaleSlope);
+    expect(pixel.getVoiLutFunction()).to.be.eq('LINEAR');
     expect(pixel.getRescaleIntercept()).to.be.eq(rescaleIntercept);
     expect(pixel.getMinimumPixelValue()).to.be.eq(0);
     expect(pixel.getMaximumPixelValue()).to.be.eq((1 << pixel.getBitsStored()) - 1);
     expect(pixel.isPlanar()).to.be.eq(false);
+    expect(pixel.getSmallestImagePixelValue()).to.be.eq(smallestImagePixelValue);
+    expect(pixel.getLargestImagePixelValue()).to.be.eq(largestImagePixelValue);
+    expect(pixel.getPixelPaddingValue()).to.be.eq(pixelPaddingValue);
     expect(arrayBuffersAreEqual(pixel.getPixelData()[0], pixelData[0])).to.be.true;
   });
 
@@ -83,7 +93,7 @@ describe('Pixel', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     expect(() => {
-      image.render(0);
+      image.render();
     }).to.throw();
 
     const image2 = new DicomImage(

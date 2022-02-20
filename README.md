@@ -26,21 +26,52 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 
 #### Basic image rendering
 ```js
-// Create an ArrayBuffer with the contents of the DICOM P10 byte stream
+// Create an ArrayBuffer with the contents of the DICOM P10 byte stream.
 const image = new DicomImage(arrayBuffer);
 
-// Render image in an RGBA pixels ArrayBuffer
-// Optionally provide a frame index in case of multiframe datasets
-const renderedPixels = image.render(frameIndex);
+// Render image.
+const renderingResult = image.render();
+
+// Rendered pixels in an RGBA ArrayBuffer.
+const renderedPixels = renderingResult.pixels;
 ```
 
-#### Image rendering with user defined window/level
+#### Advanced image rendering
 ```js
-// Create an ArrayBuffer with the contents of the DICOM P10 byte stream
+// Create an ArrayBuffer with the contents of the DICOM P10 byte stream.
 const image = new DicomImage(arrayBuffer);
 
-// Render image in an RGBA pixels ArrayBuffer using a custom window/level
-const renderedPixels = image.render(0, new WindowLevel(windowWidth, windowLevel));
+// Create image rendering options.
+const opts = {
+  // Optional frame index, in case of multiframe datasets.
+  // If not provided, the first frame is rendered.
+  frame: 0,
+  // Optional user-provided window/level.
+  // If not provided, the rendering pipeline calculates it 
+  // from DICOM tag information or pixel values.
+  windowLevel: new WindowLevel(windowWidth, windowLevel),
+  // Optional flag to indicate whether overlays should be rendered.
+  // If not provided, the overlays are rendered.
+  renderOverlays: true,
+  // Optional flag to indicate whether histograms should be calculated.
+  // If not provided, the histograms are not calculated.
+  calculateHistograms: false
+};
+
+// Render image.
+const renderingResult = image.render(opts));
+
+// Rendered pixels in an RGBA ArrayBuffer.
+const renderedPixels = renderingResult.pixels;
+// Rendered frame index.
+const frame = renderingResult.frame;
+// Window/level used to render the pixels.
+// In case of color images, windowLevel should not be present.
+const windowLevel = renderingResult.windowLevel;
+// Array of calculated per-channel histograms.
+// In case calculateHistograms rendering option is false
+// histograms should not be present.
+const histograms = renderingResult.histograms;
 ```
 Please check a live example [here][dcmjs-imaging-live-example-url].
 

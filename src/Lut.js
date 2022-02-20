@@ -136,17 +136,19 @@ class RescaleLut extends Lut {
 }
 //#endregion
 
-//#region VoiLinearLut
-class VoiLinearLut extends Lut {
+//#region VoiLut
+class VoiLut extends Lut {
   /**
-   * Creates an instance of VoiLinearLut.
+   * Creates an instance of VoiLut.
    * @constructor
    * @param {WindowLevel} windowLevel - Window/level object.
+   * @param {string} [voiLutFunction] - Function.
    */
-  constructor(windowLevel) {
+  constructor(windowLevel, voiLutFunction) {
     super();
 
     this.setWindowLevel(windowLevel);
+    this.setFunction(voiLutFunction || 'LINEAR');
     this.valid = false;
   }
 
@@ -166,6 +168,25 @@ class VoiLinearLut extends Lut {
    */
   setWindowLevel(windowLevel) {
     this.windowLevel = windowLevel;
+    this.valid = false;
+  }
+
+  /**
+   * Gets the function.
+   * @method
+   * @returns {string} Function.
+   */
+  getFunction() {
+    return this.function;
+  }
+
+  /**
+   * Sets the function.
+   * @method
+   * @param {string} voiLutFunction - Function.
+   */
+  setFunction(voiLutFunction) {
+    this.function = voiLutFunction;
     this.valid = false;
   }
 
@@ -206,8 +227,10 @@ class VoiLinearLut extends Lut {
     }
 
     const windowLevel = this.getWindowLevel();
-    this.windowCenterMin05 = windowLevel.getLevel() - 0.5;
-    this.windowWidthMin1 = windowLevel.getWindow() - 1;
+    this.windowCenter = windowLevel.getLevel();
+    this.windowWidth = windowLevel.getWindow();
+    this.windowCenterMin05 = this.windowCenter - 0.5;
+    this.windowWidthMin1 = this.windowWidth - 1;
     this.windowWidthDiv2 = this.windowWidthMin1 / 2;
     this.windowStart = Math.trunc(this.windowCenterMin05 - this.windowWidthDiv2);
     this.windowEnd = Math.trunc(this.windowCenterMin05 + this.windowWidthDiv2);
@@ -221,14 +244,47 @@ class VoiLinearLut extends Lut {
    * @returns {number} LUT value.
    */
   getValue(input) {
-    if (input <= this.windowStart) {
-      return this.getMinimumOutputValue();
+    if (this.windowWidth === 1) {
+      return input < this.windowCenterMin05
+        ? this.getMinimumOutputValue()
+        : this.getMaximumOutputValue();
     }
-    if (input > this.windowEnd) {
-      return this.getMaximumOutputValue();
+    if (this.function.toUpperCase() === 'SIGMOID') {
+      return Math.min(
+        this.getMaximumOutputValue(),
+        Math.max(
+          this.getMinimumOutputValue(),
+          Math.trunc(
+            this.getMaximumOutputValue() /
+              (1.0 + Math.exp(-4.0 * ((input - this.windowCenter) / this.windowWidth)))
+          )
+        )
+      );
     }
-    const scale = (input - this.windowCenterMin05) / this.windowWidthMin1 + 0.5;
-    return Math.trunc(scale * 255.0);
+    if (this.function.toUpperCase() === 'LINEAR_EXACT') {
+      return Math.min(
+        this.getMaximumOutputValue(),
+        Math.max(
+          this.getMinimumOutputValue(),
+          Math.trunc(
+            ((input - this.windowCenter) / this.windowWidth) * this.getMaximumOutputValue() +
+              this.getMinimumOutputValue()
+          )
+        )
+      );
+    }
+
+    return Math.min(
+      this.getMaximumOutputValue(),
+      Math.max(
+        this.getMinimumOutputValue(),
+        Math.trunc(
+          ((input - this.windowCenterMin05) / this.windowWidthMin1 + 0.5) *
+            this.getMaximumOutputValue() +
+            this.getMinimumOutputValue()
+        )
+      )
+    );
   }
 }
 //#endregion
@@ -496,6 +552,7 @@ class CompositeLut extends Lut {
         return false;
       }
     }
+
     return true;
   }
 
@@ -512,6 +569,7 @@ class CompositeLut extends Lut {
     if (lastLut !== undefined) {
       return lastLut.getMinimumOutputValue();
     }
+
     return 0;
   }
 
@@ -528,6 +586,7 @@ class CompositeLut extends Lut {
     if (lastLut !== undefined) {
       return lastLut.getMaximumOutputValue();
     }
+
     return 255;
   }
 
@@ -553,6 +612,7 @@ class CompositeLut extends Lut {
       const lut = this.luts[i];
       input = lut.getValue(input);
     }
+
     return Math.trunc(input);
   }
 }
@@ -631,6 +691,7 @@ class PrecalculatedLut extends Lut {
     if (p >= this.table.length) {
       return this.table[this.table.length - 1];
     }
+
     return Math.trunc(this.table[p]);
   }
 }
@@ -654,9 +715,10 @@ class LutPipeline {
    * @param {DicomImage} image - DICOM image object.
    * @param {Pixel} pixel - Pixel object.
    * @param {WindowLevel} [windowLevel] - User provided window/level.
+   * @param {number} [frame] - Frame index.
    * @returns {Lut} LUT object.
    */
-  static create(image, pixel, windowLevel) {
+  static create(image, pixel, windowLevel, frame) {
     const photometricInterpretation = pixel.getPhotometricInterpretation();
     if (
       photometricInterpretation === PhotometricInterpretation.Monochrome1 ||
@@ -673,16 +735,9 @@ class LutPipeline {
           ? ColorMap.getColorMapMonochrome1()
           : ColorMap.getColorMapMonochrome2()
       );
-      let wl = windowLevel;
-      if (!wl) {
-        const windowLevels = WindowLevel.fromDicomImage(image);
-        if (windowLevels.length > 0) {
-          wl = windowLevels[0];
-        }
-      }
-      if (wl) {
-        pipeline.setWindowLevel(wl);
-      }
+      pipeline.setWindowLevel(windowLevel || this._calculateWindowLevel(image, pixel, frame));
+      pipeline.setVoiLutFunction(pixel.getVoiLutFunction());
+
       return pipeline;
     } else if (
       photometricInterpretation === PhotometricInterpretation.Rgb ||
@@ -698,6 +753,73 @@ class LutPipeline {
         `Unsupported LUT pipeline photometric interpretation: ${photometricInterpretation}`
       );
     }
+  }
+
+  /**
+   * Calculates the window/level based on pixel parameters.
+   * @method
+   * @private
+   * @static
+   * @param {DicomImage} image - DICOM image object.
+   * @param {Pixel} pixel - Pixel object.
+   * @param {number} [frame] - Frame index.
+   * @returns {WindowLevel} WindowLevel object.
+   */
+  static _calculateWindowLevel(image, pixel, frame) {
+    // Window/level tag values
+    const windowLevels = WindowLevel.fromDicomImage(image);
+    if (windowLevels.length > 0) {
+      return windowLevels[0];
+    }
+
+    // Smallest/largest pixel tag values
+    if (
+      pixel.getSmallestImagePixelValue() !== undefined &&
+      pixel.getLargestImagePixelValue() !== undefined
+    ) {
+      const smallestValue = pixel.getSmallestImagePixelValue();
+      const largestValue = pixel.getLargestImagePixelValue();
+      if (smallestValue < largestValue) {
+        return new WindowLevel(
+          Math.abs(largestValue - smallestValue),
+          (largestValue + smallestValue) / 2.0
+        );
+      }
+    }
+
+    // Actual pixel min/max values
+    let frameData = undefined;
+    if (pixel.getBitsStored() <= 8) {
+      frameData = pixel.getFrameDataU8(frame);
+    } else if (pixel.getBitsStored() <= 16) {
+      frameData = pixel.isSigned() ? pixel.getFrameDataS16(frame) : pixel.getFrameDataU16(frame);
+    } else {
+      throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
+    }
+
+    let min = Infinity;
+    let max = -Infinity;
+    const padding = pixel.getPixelPaddingValue();
+    for (let i = 0; i < frameData.length; i++) {
+      const p = frameData[i];
+      if (padding !== undefined && padding === p) {
+        continue;
+      }
+      if (p > max) {
+        max = p;
+      }
+      if (p < min) {
+        min = p;
+      }
+    }
+
+    min = min < pixel.getMinimumPixelValue() ? pixel.getMinimumPixelValue() : min;
+    max = max > pixel.getMaximumPixelValue() ? pixel.getMaximumPixelValue() : max;
+
+    min = Math.trunc(min * pixel.getRescaleSlope() + pixel.getRescaleIntercept());
+    max = Math.trunc(max * pixel.getRescaleSlope() + pixel.getRescaleIntercept());
+
+    return new WindowLevel(Math.max(1, Math.abs(max - min)), (max + min) / 2.0);
   }
 }
 //#endregion
@@ -719,8 +841,9 @@ class GrayscaleLutPipeline extends LutPipeline {
     this.maxValue = signed ? (1 << (bitsStored - 1)) - 1 : (1 << bitsStored) - 1;
 
     this.rescaleLut = new RescaleLut(this.minValue, this.maxValue, slope, intercept);
-    this.voiLut = new VoiLinearLut(
-      new WindowLevel(this.maxValue - this.minValue, (this.minValue + this.maxValue) / 2)
+    this.voiLut = new VoiLut(
+      new WindowLevel(this.maxValue - this.minValue, (this.minValue + this.maxValue) / 2),
+      'LINEAR'
     );
     this.outputLut = new OutputLut(ColorMap.getColorMapMonochrome2());
 
@@ -744,6 +867,24 @@ class GrayscaleLutPipeline extends LutPipeline {
    */
   setWindowLevel(windowLevel) {
     this.voiLut.setWindowLevel(windowLevel);
+  }
+
+  /**
+   * Gets the VOI LUT function.
+   * @method
+   * @returns {string} VOI LUT function.
+   */
+  getVoiLutFunction() {
+    return this.voiLut.getFunction();
+  }
+
+  /**
+   * Sets the window/level.
+   * @method
+   * @param {string} voiLutFunction - VOI LUT function.
+   */
+  setVoiLutFunction(voiLutFunction) {
+    this.voiLut.setFunction(voiLutFunction);
   }
 
   /**
@@ -806,6 +947,7 @@ class GrayscaleLutPipeline extends LutPipeline {
       }
       this.lut = composite;
     }
+
     return new PrecalculatedLut(this.lut, this.minValue, this.maxValue);
   }
 }
@@ -866,7 +1008,7 @@ module.exports = {
   Lut,
   LutPipeline,
   RescaleLut,
-  VoiLinearLut,
+  VoiLut,
   InvertLut,
   PaletteColorLut,
   OutputLut,

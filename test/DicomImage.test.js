@@ -5,11 +5,11 @@ const {
   PhotometricInterpretation,
   PixelRepresentation,
 } = require('./../src/Constants');
+const WindowLevel = require('../src/WindowLevel');
 
 const { createImageFromPixelData } = require('./utils');
 
 const chai = require('chai');
-const { WindowLevel } = require('../src');
 const expect = chai.expect;
 
 describe('DicomImage', () => {
@@ -54,7 +54,6 @@ describe('DicomImage', () => {
     expect(image3.getHeight()).to.be.eq(rows);
     expect(image3.getWidth()).to.be.eq(columns);
     expect(image3.getNumberOfFrames()).to.be.eq(numberOfFrames);
-    expect(image3.getRenderOverlays()).to.be.eq(true);
   });
 
   it('should throw for not renderable transfer syntax UID', () => {
@@ -80,7 +79,7 @@ describe('DicomImage', () => {
     );
 
     expect(() => {
-      image.render(2);
+      image.render({ frame: 2 });
     }).to.throw();
   });
 
@@ -93,7 +92,7 @@ describe('DicomImage', () => {
     );
 
     expect(() => {
-      image.render(0, 'ww/wl');
+      image.render({ windowLevel: 'ww/wl' });
     }).to.throw();
   });
 
@@ -123,7 +122,13 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(monoImage.render(0, new WindowLevel(255, 255 / 2)));
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
@@ -159,12 +164,94 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(monoImage.render(0, new WindowLevel(255, 255 / 2)));
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
+  });
+
+  it('should correctly render an 8-bit grayscale multiframe (MONOCHROME2)', () => {
+    const width = 3;
+    const height = 3;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      // Frame 1
+      0x00, 0x7f, 0x00,
+      0xff, 0x00, 0xff,
+      0x00, 0x7f, 0x00,
+      // Frame 2
+      0xff, 0x00, 0xff,
+      0x00, 0x7f, 0x00,
+      0xff, 0x00, 0xff,
+    ]);
+    // prettier-ignore
+    const expectedRenderedPixels1 = Uint8Array.from([
+      0x00, 0x7f, 0x00,
+      0xff, 0x00, 0xff,
+      0x00, 0x7f, 0x00,
+    ]);
+    const expectedRenderedPixels2 = Uint8Array.from([
+      0xff, 0x00, 0xff, 0x00, 0x7f, 0x00, 0xff, 0x00, 0xff,
+    ]);
+    const monoImage = createImageFromPixelData(
+      width,
+      height,
+      8,
+      8,
+      1,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Monochrome2,
+      pixels.buffer,
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    monoImage.setElement('NumberOfFrames', 2);
+
+    const renderingResult1 = monoImage.render({
+      frame: 0,
+      windowLevel: new WindowLevel(255, 255 / 2),
+    });
+    expect(renderingResult1.histograms).to.be.undefined;
+    expect(renderingResult1.windowLevel).not.to.be.undefined;
+    expect(renderingResult1.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult1.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult1.frame).to.be.eq(0);
+
+    const renderedPixels1 = new Uint8Array(renderingResult1.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels1[i]).to.be.eq(expectedRenderedPixels1[p]);
+      expect(renderedPixels1[i + 1]).to.be.eq(expectedRenderedPixels1[p]);
+      expect(renderedPixels1[i + 2]).to.be.eq(expectedRenderedPixels1[p]);
+      expect(renderedPixels1[i + 3]).to.be.eq(255);
+      p++;
+    }
+
+    const renderingResult2 = monoImage.render({
+      frame: 1,
+      windowLevel: new WindowLevel(255, 255 / 2),
+    });
+    expect(renderingResult2.histograms).to.be.undefined;
+    expect(renderingResult2.windowLevel).not.to.be.undefined;
+    expect(renderingResult2.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult2.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult2.frame).to.be.eq(1);
+
+    const renderedPixels2 = new Uint8Array(renderingResult2.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels2[i]).to.be.eq(expectedRenderedPixels2[p]);
+      expect(renderedPixels2[i + 1]).to.be.eq(expectedRenderedPixels2[p]);
+      expect(renderedPixels2[i + 2]).to.be.eq(expectedRenderedPixels2[p]);
+      expect(renderedPixels2[i + 3]).to.be.eq(255);
       p++;
     }
   });
@@ -195,7 +282,12 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(monoImage.render());
+    const renderingResult = monoImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
@@ -210,9 +302,9 @@ describe('DicomImage', () => {
     const height = 3;
     // prettier-ignore
     const pixels = Uint8Array.from([
-      0x7F, 0xFF,   0xFF, 0x7F,   0x7F, 0xFF,
-      0xFF, 0x7F,   0x7F, 0xFF,   0xFF, 0x7F,
-      0x7F, 0xFF,   0xFF, 0x7F,   0x7F, 0xFF,
+      0x7f, 0xff,   0xff, 0x7f,   0x7f, 0xff,
+      0xff, 0x7f,   0x7f, 0xff,   0xff, 0x7f,
+      0x7f, 0xff,   0xff, 0x7f,   0x7f, 0xff,
     ]);
     // prettier-ignore
     const expectedRenderedPixels = Uint8Array.from([
@@ -231,7 +323,53 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(monoImage.render());
+    const renderingResult = monoImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
+  });
+
+  it('should correctly render a big endian unsigned 16-bit grayscale frame (MONOCHROME2)', () => {
+    const width = 3;
+    const height = 3;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0x00,   0xff, 0xff,   0x00, 0x00,
+      0xff, 0xff,   0x00, 0x00,   0xff, 0xff,
+      0x00, 0x00,   0xff, 0xff,   0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0x00, 0xff, 0x00,
+      0xff, 0x00, 0xff,
+      0x00, 0xff, 0x00,
+    ]);
+    const monoImage = createImageFromPixelData(
+      width,
+      height,
+      16,
+      16,
+      1,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Monochrome2,
+      pixels.buffer,
+      TransferSyntax.ExplicitVRBigEndian
+    );
+    const renderingResult = monoImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
@@ -246,9 +384,9 @@ describe('DicomImage', () => {
     const height = 3;
     // prettier-ignore
     const pixels = Uint8Array.from([
-      0xFF, 0x7F,   0x7F, 0xFF,   0xFF, 0x7F,
-      0x7F, 0xFF,   0xFF, 0x7F,   0x7F, 0xFF,
-      0xFF, 0x7F,   0x7F, 0xFF,   0xFF, 0x7F,
+      0x7f, 0xff,   0xff, 0x7f,   0x7f, 0xff,
+      0xff, 0x7f,   0x7f, 0xff,   0xff, 0x7f,
+      0x7f, 0xff,   0xff, 0x7f,   0x7f, 0xff,
     ]);
     // prettier-ignore
     const expectedRenderedPixels = Uint8Array.from([
@@ -267,7 +405,12 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ExplicitVRBigEndian
     );
-    const renderedPixels = new Uint8Array(monoImage.render());
+    const renderingResult = monoImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
@@ -303,7 +446,12 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(rgbImage.render());
+    const renderingResult = rgbImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
@@ -348,7 +496,12 @@ describe('DicomImage', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderedPixels = new Uint8Array(paletteImage.render());
+    const renderingResult = paletteImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
