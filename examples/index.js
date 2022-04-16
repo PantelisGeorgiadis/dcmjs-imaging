@@ -1,12 +1,14 @@
 const dcmjsImaging = require('./../build/dcmjs-imaging.min.js');
-const { DicomImage } = dcmjsImaging;
+const { DicomImage, NativePixelDecoder } = dcmjsImaging;
 
 const bmp = require('bmp-js');
 const fs = require('fs');
 
-function renderToBmp(dicomFile, bmpFile) {
-  const fileBuffer = fs.readFileSync(dicomFile);
+async function renderToBmp(dicomFile, bmpFile) {
+  // Register native decoders
+  await NativePixelDecoder.initializeAsync();
 
+  const fileBuffer = fs.readFileSync(dicomFile);
   const image = new DicomImage(
     fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength)
   );
@@ -33,4 +35,6 @@ function renderToBmp(dicomFile, bmpFile) {
 }
 
 const args = process.argv.slice(2);
-renderToBmp(args[0], args[1]);
+(async () => {
+  await renderToBmp(args[0], args[1]);
+})();

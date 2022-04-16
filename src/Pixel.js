@@ -5,8 +5,7 @@ const {
   TransferSyntax,
 } = require('./Constants');
 const Histogram = require('./Histogram');
-
-const RleDecoder = require('./RleDecoder');
+const NativePixelDecoder = require('./NativePixelDecoder');
 
 //#region Pixel
 class Pixel {
@@ -38,6 +37,12 @@ class Pixel {
     this.smallestImagePixelValue = image.getElement('SmallestImagePixelValue');
     this.largestImagePixelValue = image.getElement('LargestImagePixelValue');
     this.pixelPaddingValue = image.getElement('PixelPaddingValue');
+    this.redPaletteColorLookupTableDescriptor = image.getElement(
+      'RedPaletteColorLookupTableDescriptor'
+    );
+    this.redPaletteColorLookupTableData = image.getElement('RedPaletteColorLookupTableData');
+    this.greenPaletteColorLookupTableData = image.getElement('GreenPaletteColorLookupTableData');
+    this.bluePaletteColorLookupTableData = image.getElement('BluePaletteColorLookupTableData');
     this.pixelData = image.getElement('PixelData');
   }
 
@@ -272,6 +277,42 @@ class Pixel {
   }
 
   /**
+   * Gets the red palette color lookup table descriptor.
+   * @method
+   * @returns {Array<number>} Red palette color lookup table descriptor.
+   */
+  getRedPaletteColorLookupTableDescriptor() {
+    return this.redPaletteColorLookupTableDescriptor;
+  }
+
+  /**
+   * Gets the red palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Red palette color lookup table data.
+   */
+  getRedPaletteColorLookupTableData() {
+    return this.redPaletteColorLookupTableData;
+  }
+
+  /**
+   * Gets the green palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Green palette color lookup table data.
+   */
+  getGreenPaletteColorLookupTableData() {
+    return this.greenPaletteColorLookupTableData;
+  }
+
+  /**
+   * Gets the blue palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Blue palette color lookup table data.
+   */
+  getBluePaletteColorLookupTableData() {
+    return this.bluePaletteColorLookupTableData;
+  }
+
+  /**
    * Gets the pixel data.
    * @method
    * @returns {Array<ArrayBuffer>} Pixel data.
@@ -418,21 +459,73 @@ class Pixel {
 
       return pixelBuffer.slice(frameOffset, frameOffset + frameSize);
     } else {
-      if (frame >= pixelBuffers.length) {
-        throw new Error(
-          `Requested frame is larger or equal to the pixel fragments number [frame: (${frame}), fragments: ${pixelBuffers.length}]`
-        );
-      }
-      // Assume that each fragment holds a complete frame
-      // which might not always be the case
+      const frameFragmentsData = this._getFrameFragments(pixelBuffers, frame);
       if (this.getTransferSyntaxUid() === TransferSyntax.RleLossless) {
-        return PixelDecoder.decodeRle(this, new Uint8Array(pixelBuffers[frame]));
-      } else {
-        throw new Error(
-          `Transfer syntax cannot be currently decoded [${this.getTransferSyntaxUid()}]`
-        );
+        return NativePixelDecoder.decodeRle(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess1 ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess2_4
+      ) {
+        return NativePixelDecoder.decodeJpeg(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14 ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14V1
+      ) {
+        return NativePixelDecoder.decodeJpeg(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLsLossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLsLossy
+      ) {
+        return NativePixelDecoder.decodeJpegLs(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy
+      ) {
+        return NativePixelDecoder.decodeJpeg2000(this, frameFragmentsData);
       }
+
+      throw new Error(
+        `Transfer syntax cannot be currently decoded [${this.getTransferSyntaxUid()}]`
+      );
     }
+  }
+
+  /**
+   * Gets the frame fragments data.
+   * @method
+   * @private
+   * @param {number} pixelBuffers - Pixel data buffers.
+   * @param {number} frame - Frame index.
+   * @returns {Uint8Array} Frame data as an array of unsigned byte values.
+   */
+  _getFrameFragments(pixelBuffers, frame) {
+    if (pixelBuffers.length === 0) {
+      throw new Error('No fragmented pixel data');
+    }
+    if (frame >= pixelBuffers.length) {
+      throw new Error(
+        `Requested frame is larger or equal to the pixel fragments number [frame: (${frame}), fragments: ${pixelBuffers.length}]`
+      );
+    }
+    if (this.getNumberOfFrames() === 1) {
+      return new Uint8Array(
+        pixelBuffers.reduce((result, current, i) => {
+          if (i === 0) {
+            return result;
+          }
+          const tmp = new Uint8Array(result.byteLength + current.byteLength);
+          tmp.set(new Uint8Array(result), 0);
+          tmp.set(new Uint8Array(current), result.byteLength);
+
+          return tmp.buffer;
+        })
+      );
+    }
+    if (pixelBuffers.length === this.getNumberOfFrames()) {
+      return new Uint8Array(pixelBuffers[frame]);
+    }
+
+    throw new Error('Multiple fragments per frame is not yet implemented');
   }
   //#endregion
 }
@@ -510,8 +603,8 @@ class PixelPipeline {
    * @method
    * @static
    * @param {Pixel} pixel - Pixel object.
-   * @param {number} [frame] - Frame index.
-   * @returns {PixelPipeline} Pixel data object.
+   * @param {number} frame - Frame index.
+   * @returns {PixelPipeline} Pixel pipeline object.
    */
   static create(pixel, frame) {
     const photometricInterpretation = pixel.getPhotometricInterpretation();
@@ -543,7 +636,9 @@ class PixelPipeline {
       photometricInterpretation == PhotometricInterpretation.Rgb ||
       photometricInterpretation == PhotometricInterpretation.YbrFull ||
       photometricInterpretation == PhotometricInterpretation.YbrFull422 ||
-      photometricInterpretation == PhotometricInterpretation.YbrPartial422
+      photometricInterpretation == PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation == PhotometricInterpretation.YbrIct ||
+      photometricInterpretation == PhotometricInterpretation.YbrRct
     ) {
       let pixels = pixel.getFrameDataU8(frame);
       if (pixel.getPlanarConfiguration() === PlanarConfiguration.Planar) {
@@ -646,7 +741,7 @@ class GrayscalePixelPipeline extends PixelPipeline {
    */
   render(lut) {
     const output = new Int32Array(this.getWidth() * this.getHeight());
-    if (lut === undefined) {
+    if (!lut) {
       for (let y = 0; y < this.getHeight(); ++y) {
         for (let i = this.getWidth() * y, e = i + this.getWidth(); i < e; i++) {
           output[i] = this.data[i];
@@ -806,7 +901,7 @@ class ColorPixelPipeline extends PixelPipeline {
    */
   render(lut) {
     const output = new Int32Array(this.getWidth() * this.getHeight());
-    if (lut === undefined) {
+    if (!lut) {
       for (let y = 0; y < this.getHeight(); ++y) {
         for (let i = this.getWidth() * y, e = i + this.getWidth(), p = i * 3; i < e; i++) {
           output[i] = (this.data[p++] << 0x10) | (this.data[p++] << 0x08) | this.data[p++];
@@ -911,7 +1006,7 @@ class PixelConverter {
       );
       output[p++] = Math.min(Math.max(y1 + 1.772 * (cb - 128) + 0.5, 0), 255);
 
-      if (++col == width) {
+      if (++col === width) {
         col = 0;
         continue;
       }
@@ -923,7 +1018,7 @@ class PixelConverter {
       );
       output[p++] = Math.min(Math.max(y2 + 1.772 * (cb - 128) + 0.5, 0), 255);
 
-      if (++col == width) {
+      if (++col === width) {
         col = 0;
       }
     }
@@ -955,7 +1050,7 @@ class PixelConverter {
       );
       output[p++] = Math.min(Math.max(1.1644 * (y1 - 16) + 2.0173 * (cb - 128) + 0.5, 0), 255);
 
-      if (++col == width) {
+      if (++col === width) {
         col = 0;
         continue;
       }
@@ -978,49 +1073,6 @@ class PixelConverter {
 }
 //#endregion
 
-//#region PixelDecoder
-class PixelDecoder {
-  /**
-   * Decodes an RLE frame.
-   * @method
-   * @param {Pixel} pixel - Pixel object.
-   * @param {Uint8Array} data - Encoded pixels data.
-   * @returns {Uint8Array} Decoded pixels data.
-   */
-  /* c8 ignore start */
-  static decodeRle(pixel, data) {
-    let frameSize = pixel.getUncompressedFrameSize();
-    if ((frameSize & 1) == 1) {
-      ++frameSize;
-    }
-    const frameData = new Uint8Array(frameSize);
-    const pixelCount = pixel.getWidth() * pixel.getHeight();
-    const numberOfSegments = pixel.getBytesAllocated() * pixel.getSamplesPerPixel();
-    const decoder = new RleDecoder(data);
-    if (decoder.getNumberOfSegments() != numberOfSegments) {
-      throw new Error('Unexpected number of RLE segments');
-    }
-    for (let s = 0; s < numberOfSegments; s++) {
-      let pos, offset;
-      const sample = Math.trunc(s / pixel.getBytesAllocated());
-      const sabyte = Math.trunc(s % pixel.getBytesAllocated());
-      if (pixel.getPlanarConfiguration() === PlanarConfiguration.Interleaved) {
-        pos = sample * pixel.getBytesAllocated();
-        offset = pixel.getSamplesPerPixel() * pixel.getBytesAllocated();
-      } else {
-        pos = sample * pixel.getBytesAllocated() * pixelCount;
-        offset = pixel.getBytesAllocated();
-      }
-      pos += pixel.getBytesAllocated() - sabyte - 1;
-      decoder.decodeSegment(s, frameData, pos, offset);
-    }
-
-    return frameData;
-  }
-  /* c8 ignore stop */
-}
-//#endregion
-
 //#region Exports
 module.exports = {
   Pixel,
@@ -1029,6 +1081,5 @@ module.exports = {
   SingleBitPixelPipeline,
   ColorPixelPipeline,
   PixelConverter,
-  PixelDecoder,
 };
 //#endregion

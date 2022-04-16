@@ -2,7 +2,7 @@
   "reporter": ["text", "html"],
   "clean": true,
   "include": ["src/*.js"],
-  "exclude": ["src/index.js", "src/version.js"],
+  "exclude": ["src/index.js", "src/version.js", "src/log.js"],
   "check-coverage": true,
   "lines": 80,
   "functions": 80,

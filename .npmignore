@@ -4,6 +4,7 @@ coverage/
 examples/
 src/
 test/
+wasm/
 documentation/
 
 ## Root files

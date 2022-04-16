@@ -73,7 +73,7 @@ class WindowLevel {
    * @returns {string} Window/level description.
    */
   toString() {
-    return `${this.getWindow()}:${this.getLevel()} ${this.getDescription() || 'No description'}`;
+    return `${this.getWindow()}:${this.getLevel()} ${this.getDescription() || '[No description]'}`;
   }
 
   /**
@@ -86,33 +86,33 @@ class WindowLevel {
   static fromDicomImage(image) {
     const ret = [];
 
-    let wc = image.getElement('WindowCenter');
-    let ww = image.getElement('WindowWidth');
-    let descs = image.getElement('WindowCenterWidthExplanation');
+    let windowCenters = image.getElement('WindowCenter');
+    let windowWidths = image.getElement('WindowWidth');
+    let descriptions = image.getElement('WindowCenterWidthExplanation');
 
-    if (wc === undefined || ww === undefined) {
+    if (windowCenters === undefined || windowWidths === undefined) {
       return ret;
     }
 
-    wc = !Array.isArray(wc) ? [wc] : wc;
-    ww = !Array.isArray(ww) ? [ww] : ww;
-    descs = !Array.isArray(descs) ? [descs] : descs;
+    windowCenters = !Array.isArray(windowCenters) ? [windowCenters] : windowCenters;
+    windowWidths = !Array.isArray(windowWidths) ? [windowWidths] : windowWidths;
+    descriptions = !Array.isArray(descriptions) ? [descriptions] : descriptions;
 
-    if (wc.length !== ww.length) {
+    if (windowCenters.length !== windowWidths.length) {
       throw new Error('Window center count does not match window width count');
     }
 
-    for (let i = 0; i < wc.length; i++) {
-      const window = parseFloat(ww[i]);
-      const level = parseFloat(wc[i]);
+    for (let i = 0; i < windowCenters.length; i++) {
+      const window = parseFloat(windowWidths[i]);
+      const level = parseFloat(windowCenters[i]);
       if (isNaN(window) || isNaN(level)) {
-        throw new Error(`Unable to parse window center/window width [wc: ${wc[i]}, ww: ${ww[i]}]`);
+        continue;
       }
 
       if (window >= 1) {
         let description = undefined;
-        if (descs !== undefined && i < descs.length) {
-          description = descs[i];
+        if (descriptions !== undefined && i < descriptions.length) {
+          description = descriptions[i];
         }
         ret.push(new WindowLevel(window, level, description));
       }

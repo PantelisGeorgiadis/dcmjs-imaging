@@ -34,25 +34,8 @@ function getRandomNumber(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function arrayBuffersAreEqual(a, b) {
-  return dataViewsAreEqual(new DataView(a), new DataView(b));
-}
-
-function dataViewsAreEqual(a, b) {
-  if (a.byteLength !== b.byteLength) {
-    return false;
-  }
-  for (let i = 0; i < a.byteLength; i++) {
-    if (a.getUint8(i) !== b.getUint8(i)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 module.exports = {
   createImageFromPixelData,
   getRandomInteger,
   getRandomNumber,
-  arrayBuffersAreEqual,
 };

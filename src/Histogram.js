@@ -1,3 +1,4 @@
+//#region Histogram
 class Histogram {
   /**
    * Creates an instance of Histogram.
@@ -88,6 +89,7 @@ class Histogram {
     return this.values[pos];
   }
 }
+//#endregion
 
 //#region Exports
 module.exports = Histogram;

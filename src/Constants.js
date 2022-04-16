@@ -11,7 +11,8 @@ const TransferSyntax = {
   RleLossless: '1.2.840.10008.1.2.5',
   JpegBaselineProcess1: '1.2.840.10008.1.2.4.50',
   JpegBaselineProcess2_4: '1.2.840.10008.1.2.4.51',
-  JpegLossless: '1.2.840.10008.1.2.4.70',
+  JpegLosslessProcess14: '1.2.840.10008.1.2.4.57',
+  JpegLosslessProcess14V1: '1.2.840.10008.1.2.4.70',
   JpegLsLossless: '1.2.840.10008.1.2.4.80',
   JpegLsLossy: '1.2.840.10008.1.2.4.81',
   Jpeg2000Lossless: '1.2.840.10008.1.2.4.90',
@@ -30,6 +31,14 @@ const RenderableTransferSyntaxes = [
   TransferSyntax.ExplicitVRLittleEndian,
   TransferSyntax.ExplicitVRBigEndian,
   TransferSyntax.RleLossless,
+  TransferSyntax.JpegBaselineProcess1,
+  TransferSyntax.JpegBaselineProcess2_4,
+  TransferSyntax.JpegLosslessProcess14,
+  TransferSyntax.JpegLosslessProcess14V1,
+  TransferSyntax.JpegLsLossless,
+  TransferSyntax.JpegLsLossy,
+  TransferSyntax.Jpeg2000Lossless,
+  TransferSyntax.Jpeg2000Lossy,
 ];
 Object.freeze(RenderableTransferSyntaxes);
 //#endregion
@@ -78,6 +87,20 @@ const PixelRepresentation = {
 Object.freeze(PixelRepresentation);
 //#endregion
 
+//#region StandardColorPalette
+/**
+ * Standard color palette.
+ * @constant {Object}
+ */
+const StandardColorPalette = {
+  HotIron: '1.2.840.10008.1.5.1',
+  Pet: '1.2.840.10008.1.5.2',
+  HotMetalBlue: '1.2.840.10008.1.5.3',
+  Pet20Step: '1.2.840.10008.1.5.4',
+};
+Object.freeze(StandardColorPalette);
+//#endregion
+
 //#region Overlay color
 /**
  * Overlay color.
@@ -95,6 +118,7 @@ module.exports = {
   PhotometricInterpretation,
   PlanarConfiguration,
   PixelRepresentation,
+  StandardColorPalette,
   OverlayColor,
 };
 //#endregion

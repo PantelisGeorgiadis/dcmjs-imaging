@@ -1,9 +1,8 @@
-const ColorMap = require('./ColorMap');
+const ColorPalette = require('./ColorPalette');
 const WindowLevel = require('./WindowLevel');
 const { PhotometricInterpretation } = require('./Constants');
 
 //#region Lut
-/* c8 ignore start */
 class Lut {
   /**
    * Gets whether the LUT values are valid.
@@ -51,7 +50,6 @@ class Lut {
     throw new Error('getValue should be implemented');
   }
 }
-/* c8 ignore stop */
 //#endregion
 
 //#region RescaleLut
@@ -355,31 +353,31 @@ class PaletteColorLut extends Lut {
    * Creates an instance of PaletteColorLut.
    * @constructor
    * @param {number} minValue - Minimum value.
-   * @param {Array<number>} colorMap - Array of color map ARGB values.
+   * @param {Array<number>} colorPalette - Array of color palette ARGB values.
    */
-  constructor(minValue, colorMap) {
+  constructor(minValue, colorPalette) {
     super();
 
     this.minValue = minValue;
-    this.setColorMap(colorMap);
+    this.setColorPalette(colorPalette);
   }
 
   /**
-   * Gets the color map.
+   * Gets the color palette.
    * @method
-   * @returns {Array<number>} Array of color map ARGB values.
+   * @returns {Array<number>} Array of color palette ARGB values.
    */
-  getColorMap() {
-    return this.colorMap;
+  getColorPalette() {
+    return this.colorPalette;
   }
 
   /**
-   * Sets the color map.
+   * Sets the color palette.
    * @method
-   * @param {Array<number>} colorMap - Array of color map ARGB values.
+   * @param {Array<number>} colorPalette - Array of color palette ARGB values.
    */
-  setColorMap(colorMap) {
-    this.colorMap = colorMap;
+  setColorPalette(colorPalette) {
+    this.colorPalette = colorPalette;
   }
 
   /**
@@ -388,7 +386,7 @@ class PaletteColorLut extends Lut {
    * @returns {boolean} Whether the LUT values are valid.
    */
   isValid() {
-    return this.colorMap !== undefined;
+    return this.colorPalette !== undefined;
   }
 
   /**
@@ -422,7 +420,7 @@ class PaletteColorLut extends Lut {
    * @returns {number} LUT value.
    */
   getValue(input) {
-    return Math.trunc(this.colorMap[input - this.minValue > 0 ? input - this.minValue : 0]);
+    return Math.trunc(this.colorPalette[input - this.minValue > 0 ? input - this.minValue : 0]);
   }
 }
 //#endregion
@@ -432,34 +430,34 @@ class OutputLut extends Lut {
   /**
    * Creates an instance of OutputLut.
    * @constructor
-   * @param {Array<number>} colorMap - Array of color map ARGB values.
+   * @param {Array<number>} colorPalette - Array of color palette ARGB values.
    */
-  constructor(colorMap) {
+  constructor(colorPalette) {
     super();
 
     this.table = undefined;
-    this.setColorMap(colorMap);
+    this.setColorPalette(colorPalette);
   }
 
   /**
-   * Gets the color map.
+   * Gets the color palette.
    * @method
-   * @returns {Array<number>} Array of color map ARGB values.
+   * @returns {Array<number>} Array of color palette ARGB values.
    */
-  getColorMap() {
-    return this.colorMap;
+  getColorPalette() {
+    return this.colorPalette;
   }
 
   /**
-   * Sets the color map.
+   * Sets the color palette.
    * @method
-   * @param {Array<number>} colorMap - Array of color map ARGB values.
+   * @param {Array<number>} colorPalette - Array of color palette ARGB values.
    */
-  setColorMap(colorMap) {
-    if (colorMap === undefined || !Array.isArray(colorMap) || colorMap.length !== 256) {
-      throw new Error('Expected 256 entry color map');
+  setColorPalette(colorPalette) {
+    if (colorPalette === undefined || !Array.isArray(colorPalette) || colorPalette.length !== 256) {
+      throw new Error('Expected 256-entry color palette');
     }
-    this.colorMap = colorMap;
+    this.colorPalette = colorPalette;
     this.table = undefined;
   }
 
@@ -500,7 +498,7 @@ class OutputLut extends Lut {
     }
     this.table = new Array(256);
     for (let i = 0; i < 256; i++) {
-      this.table[i] = this.colorMap[i];
+      this.table[i] = this.colorPalette[i];
     }
   }
 
@@ -712,13 +710,13 @@ class LutPipeline {
    * Creates a LUT object based on image and pixel parameters.
    * @method
    * @static
-   * @param {DicomImage} image - DICOM image object.
    * @param {Pixel} pixel - Pixel object.
-   * @param {WindowLevel} [windowLevel] - User provided window/level.
-   * @param {number} [frame] - Frame index.
-   * @returns {Lut} LUT object.
+   * @param {WindowLevel} windowLevel - Window/level.
+   * @param {number} frame - Frame index.
+   * @param {StandardColorPalette} [colorPalette] - Color palette.
+   * @returns {LutPipeline} LUT pipeline object.
    */
-  static create(image, pixel, windowLevel, frame) {
+  static create(pixel, windowLevel, frame, colorPalette) {
     const photometricInterpretation = pixel.getPhotometricInterpretation();
     if (
       photometricInterpretation === PhotometricInterpretation.Monochrome1 ||
@@ -730,12 +728,14 @@ class LutPipeline {
         pixel.getBitsStored(),
         pixel.isSigned()
       );
-      pipeline.setColorMap(
-        photometricInterpretation === PhotometricInterpretation.Monochrome1
-          ? ColorMap.getColorMapMonochrome1()
-          : ColorMap.getColorMapMonochrome2()
+      pipeline.setColorPalette(
+        colorPalette !== undefined
+          ? ColorPalette.getColorPaletteStandard(colorPalette)
+          : photometricInterpretation === PhotometricInterpretation.Monochrome1
+          ? ColorPalette.getColorPaletteMonochrome1()
+          : ColorPalette.getColorPaletteMonochrome2()
       );
-      pipeline.setWindowLevel(windowLevel || this._calculateWindowLevel(image, pixel, frame));
+      pipeline.setWindowLevel(windowLevel || this._calculateWindowLevel(pixel, frame));
       pipeline.setVoiLutFunction(pixel.getVoiLutFunction());
 
       return pipeline;
@@ -743,11 +743,13 @@ class LutPipeline {
       photometricInterpretation === PhotometricInterpretation.Rgb ||
       photometricInterpretation === PhotometricInterpretation.YbrFull ||
       photometricInterpretation === PhotometricInterpretation.YbrFull422 ||
-      photometricInterpretation === PhotometricInterpretation.YbrPartial422
+      photometricInterpretation === PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation === PhotometricInterpretation.YbrIct ||
+      photometricInterpretation === PhotometricInterpretation.YbrRct
     ) {
       return new RgbColorLutPipeline();
     } else if (photometricInterpretation === PhotometricInterpretation.PaletteColor) {
-      return new PaletteColorLutPipeline(image);
+      return new PaletteColorLutPipeline(pixel);
     } else {
       throw new Error(
         `Unsupported LUT pipeline photometric interpretation: ${photometricInterpretation}`
@@ -760,18 +762,11 @@ class LutPipeline {
    * @method
    * @private
    * @static
-   * @param {DicomImage} image - DICOM image object.
    * @param {Pixel} pixel - Pixel object.
    * @param {number} [frame] - Frame index.
    * @returns {WindowLevel} WindowLevel object.
    */
-  static _calculateWindowLevel(image, pixel, frame) {
-    // Window/level tag values
-    const windowLevels = WindowLevel.fromDicomImage(image);
-    if (windowLevels.length > 0) {
-      return windowLevels[0];
-    }
-
+  static _calculateWindowLevel(pixel, frame) {
     // Smallest/largest pixel tag values
     if (
       pixel.getSmallestImagePixelValue() !== undefined &&
@@ -845,10 +840,11 @@ class GrayscaleLutPipeline extends LutPipeline {
       new WindowLevel(this.maxValue - this.minValue, (this.minValue + this.maxValue) / 2),
       'LINEAR'
     );
-    this.outputLut = new OutputLut(ColorMap.getColorMapMonochrome2());
+    this.outputLut = new OutputLut(ColorPalette.getColorPaletteMonochrome2());
 
     this.invert = false;
     this.lut = undefined;
+    this.precalculatedLut = undefined;
   }
 
   /**
@@ -888,21 +884,21 @@ class GrayscaleLutPipeline extends LutPipeline {
   }
 
   /**
-   * Gets the color map.
+   * Gets the color palette.
    * @method
-   * @returns {Array<number>} Array of color map ARGB values.
+   * @returns {Array<number>} Array of color palette ARGB values.
    */
-  getColorMap() {
-    return this.outputLut.getColorMap();
+  getColorPalette() {
+    return this.outputLut.getColorPalette();
   }
 
   /**
-   * Sets the color map.
+   * Sets the color palette.
    * @method
-   * @param {Array<number>} colorMap - Array of color map ARGB values.
+   * @param {Array<number>} colorPalette - Array of color palette ARGB values.
    */
-  setColorMap(colorMap) {
-    this.outputLut.setColorMap(colorMap);
+  setColorPalette(colorPalette) {
+    this.outputLut.setColorPalette(colorPalette);
   }
 
   /**
@@ -930,7 +926,7 @@ class GrayscaleLutPipeline extends LutPipeline {
    * @returns {Lut} LUT.
    */
   getLut() {
-    if (this.lut === undefined) {
+    if (!this.lut) {
       const composite = new CompositeLut();
       if (this.rescaleLut !== undefined) {
         composite.addLut(this.rescaleLut);
@@ -948,7 +944,11 @@ class GrayscaleLutPipeline extends LutPipeline {
       this.lut = composite;
     }
 
-    return new PrecalculatedLut(this.lut, this.minValue, this.maxValue);
+    if (!this.precalculatedLut) {
+      this.precalculatedLut = new PrecalculatedLut(this.lut, this.minValue, this.maxValue);
+    }
+
+    return this.precalculatedLut;
   }
 }
 //#endregion
@@ -979,17 +979,18 @@ class PaletteColorLutPipeline extends LutPipeline {
   /**
    * Creates an instance of PaletteColorLutPipeline.
    * @constructor
+   * @param {Pixel} pixel - Pixel object.
    */
-  constructor(image) {
+  constructor(pixel) {
     super();
 
-    const colorMap = ColorMap.getColorMapPaletteColor(image);
+    const colorPalette = ColorPalette.getColorPalettePaletteColor(pixel);
     let first = 0;
-    const redDescriptor = image.getElement('RedPaletteColorLookupTableDescriptor');
+    const redDescriptor = pixel.getRedPaletteColorLookupTableDescriptor();
     if (redDescriptor !== undefined && Array.isArray(redDescriptor) && redDescriptor.length > 0) {
       first = redDescriptor[1];
     }
-    this.lut = new PaletteColorLut(first, colorMap);
+    this.lut = new PaletteColorLut(first, colorPalette);
   }
 
   /**

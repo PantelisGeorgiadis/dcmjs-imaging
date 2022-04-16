@@ -1,6 +1,7 @@
 const { RenderableTransferSyntaxes, TransferSyntax, OverlayColor } = require('./Constants');
-const { Pixel, PixelPipeline } = require('./Pixel');
-const { LutPipeline, GrayscaleLutPipeline } = require('./Lut');
+const { PixelPipelineCache, LutPipelineCache } = require('./Cache');
+const { Pixel } = require('./Pixel');
+const { GrayscaleLutPipeline } = require('./Lut');
 const WindowLevel = require('./WindowLevel');
 const Overlay = require('./Overlay');
 
@@ -14,10 +15,17 @@ class DicomImage {
    * Creates an instance of DicomImage.
    * @constructor
    * @param {Object|ArrayBuffer} [elementsOrBuffer] - Dataset elements as object or encoded as a DICOM dataset buffer.
-   * @param {string} [transferSyntaxUid] - Dataset transfer syntax
+   * @param {string} [transferSyntaxUid] - Dataset transfer syntax.
+   * @param {Object} [opts] - Options.
+   * @param {number} [opts.pixelPipelineCacheSize] - Pixel pipeline cache size.
+   * @param {number} [opts.lutPipelineCacheSize] - LUT pipeline cache size.
    */
-  constructor(elementsOrBuffer, transferSyntaxUid) {
+  constructor(elementsOrBuffer, transferSyntaxUid, opts) {
+    opts = opts || {};
+
     dcmjsLog.level = 'error';
+    this.pixelPipelineCache = new PixelPipelineCache(opts.pixelPipelineCacheSize || 1);
+    this.lutPipelineCache = new LutPipelineCache(opts.lutPipelineCacheSize || 1);
 
     this.transferSyntaxUid = transferSyntaxUid || TransferSyntax.ImplicitVRLittleEndian;
     if (elementsOrBuffer instanceof ArrayBuffer) {
@@ -139,6 +147,7 @@ class DicomImage {
    * @param {WindowLevel} [opts.windowLevel] - User provided window/level.
    * @param {boolean} [opts.renderOverlays] - Flag to indicate whether to render overlays.
    * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
+   * @param {StandardColorPalette} [opts.colorPalette] - Color palette to use.
    * @returns {RenderingResult} Rendering result object.
    */
   render(opts) {
@@ -208,6 +217,7 @@ class DicomImage {
    * @param {WindowLevel} [opts.windowLevel] - User provided window/level.
    * @param {boolean} [opts.renderOverlays] - Flag to indicate whether to render overlays.
    * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
+   * @param {StandardColorPalette} [opts.colorPalette] - Color palette to use.
    * @returns {RenderingResult} Rendering result object.
    */
   _render(opts) {
@@ -224,13 +234,25 @@ class DicomImage {
       throw new Error(`${opts.windowLevel.toString()} is not a WindowLevel`);
     }
 
+    // Returned objects
     let histograms = undefined;
     let windowLevel = undefined;
     let renderingResult = {};
 
-    // LUT pipeline
+    // Window/level
+    let wl = opts.windowLevel;
+    if (wl === undefined) {
+      const windowLevels = WindowLevel.fromDicomImage(this);
+      if (windowLevels.length > 0) {
+        wl = windowLevels[0];
+      }
+    }
+
+    // Pixel object
     const pixel = new Pixel(this);
-    const lutPipeline = LutPipeline.create(this, pixel, opts.windowLevel, frame);
+
+    // LUT pipeline
+    const lutPipeline = this.lutPipelineCache.getOrCreate(pixel, wl, frame, opts.colorPalette);
     const lut = lutPipeline.getLut();
     if (lut && !lut.isValid()) {
       lut.recalculate();
@@ -240,7 +262,7 @@ class DicomImage {
     }
 
     // Pixel pipeline
-    const pixelPipeline = PixelPipeline.create(pixel, frame);
+    const pixelPipeline = this.pixelPipelineCache.getOrCreate(pixel, frame);
     let renderedPixels = pixelPipeline.render(lut);
 
     // Histograms

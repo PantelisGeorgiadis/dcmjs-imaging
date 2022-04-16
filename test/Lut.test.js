@@ -5,6 +5,7 @@ const {
   GrayscaleLutPipeline,
   RgbColorLutPipeline,
   PaletteColorLutPipeline,
+  Lut,
   RescaleLut,
   VoiLut,
   InvertLut,
@@ -13,7 +14,7 @@ const {
   PrecalculatedLut,
 } = require('./../src/Lut');
 const { Pixel } = require('./../src/Pixel');
-const ColorMap = require('./../src/ColorMap');
+const ColorPalette = require('./../src/ColorPalette');
 const { TransferSyntax, PhotometricInterpretation } = require('./../src/Constants');
 
 const { getRandomInteger, getRandomNumber } = require('./utils');
@@ -22,6 +23,31 @@ const chai = require('chai');
 const expect = chai.expect;
 
 describe('Lut', () => {
+  it('should throw in case LUT methods are not implemented', () => {
+    class SubclassedLut extends Lut {
+      constructor() {
+        super();
+      }
+    }
+    const subclassedLut = new SubclassedLut();
+
+    expect(() => {
+      subclassedLut.isValid();
+    }).to.throw();
+    expect(() => {
+      subclassedLut.getMinimumOutputValue();
+    }).to.throw();
+    expect(() => {
+      subclassedLut.getMaximumOutputValue();
+    }).to.throw();
+    expect(() => {
+      subclassedLut.recalculate();
+    }).to.throw();
+    expect(() => {
+      subclassedLut.getValue(undefined);
+    }).to.throw();
+  });
+
   it('should return the correct values for RescaleLut', () => {
     const minValue = getRandomInteger(-65536, 0);
     const maxValue = getRandomInteger(0, 65536);
@@ -147,14 +173,14 @@ describe('Lut', () => {
   });
 
   it('should return the correct values for OutputLut', () => {
-    const colorMap = ColorMap.getColorMapMonochrome2();
-    const lut = new OutputLut(colorMap);
+    const colorPalette = ColorPalette.getColorPaletteMonochrome2();
+    const lut = new OutputLut(colorPalette);
     lut.recalculate();
 
     expect(lut.getMinimumOutputValue()).to.be.eq(Number.MIN_SAFE_INTEGER);
     expect(lut.getMaximumOutputValue()).to.be.eq(Number.MAX_SAFE_INTEGER);
     for (let i = 0; i < 256; i++) {
-      expect(lut.getValue(i)).to.be.eq(colorMap[i]);
+      expect(lut.getValue(i)).to.be.eq(colorPalette[i]);
     }
   });
 
@@ -211,7 +237,7 @@ describe('Lut', () => {
     );
 
     const pixel1 = new Pixel(image1);
-    const pipeline1 = LutPipeline.create(image1, pixel1);
+    const pipeline1 = LutPipeline.create(pixel1);
     expect(pipeline1).to.be.instanceof(GrayscaleLutPipeline);
 
     const image2 = new DicomImage(
@@ -229,7 +255,7 @@ describe('Lut', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     const pixel2 = new Pixel(image2);
-    const pipeline2 = LutPipeline.create(image2, pixel2);
+    const pipeline2 = LutPipeline.create(pixel2);
     expect(pipeline2).to.be.instanceof(GrayscaleLutPipeline);
 
     const image3 = new DicomImage(
@@ -250,7 +276,7 @@ describe('Lut', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     const pixel3 = new Pixel(image3);
-    const pipeline3 = LutPipeline.create(image3, pixel3);
+    const pipeline3 = LutPipeline.create(pixel3);
     expect(pipeline3).to.be.instanceof(RgbColorLutPipeline);
 
     const lut = [];
@@ -279,7 +305,7 @@ describe('Lut', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     const pixel4 = new Pixel(image4);
-    const pipeline4 = LutPipeline.create(image4, pixel4);
+    const pipeline4 = LutPipeline.create(pixel4);
     expect(pipeline4).to.be.instanceof(PaletteColorLutPipeline);
   });
 });

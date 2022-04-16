@@ -7,6 +7,7 @@ const pkg = require('./package.json');
 const rootPath = process.cwd();
 const context = path.join(rootPath, 'src');
 const examplesPath = path.join(rootPath, 'examples');
+const wasmPath = path.join(rootPath, 'wasm');
 const outputPath = path.join(rootPath, 'build');
 const filename = path.parse(pkg.main).base;
 
@@ -51,13 +52,6 @@ module.exports = {
       new TerserPlugin({
         extractComments: false,
         parallel: true,
-        terserOptions: {
-          compress: false,
-          mangle: false,
-          toplevel: false,
-          keep_classnames: true,
-          keep_fnames: true,
-        },
       }),
     ],
   },
@@ -70,6 +64,10 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: path.join(examplesPath, 'index.html'), to: path.join(outputPath, 'index.html') },
+        {
+          from: path.join(wasmPath, 'bin', 'native-pixel-decoder.wasm'),
+          to: path.join(outputPath, 'native-pixel-decoder.wasm'),
+        },
       ],
     }),
   ],

@@ -40,7 +40,11 @@
   </body>
   <script src="dcmjs-imaging.min.js"></script>
   <script>
-    const { DicomImage, WindowLevel } = window.dcmjsImaging;
+    const { DicomImage, WindowLevel, NativePixelDecoder } = window.dcmjsImaging;
+    window.onload = async (event) => {
+      await NativePixelDecoder.initializeAsync();
+    };
+
     function renderFile(file) {
       const reader = new FileReader();
       reader.onload = (file) => {
@@ -81,8 +85,14 @@
             return;
           }
 
-          frame = frame + next;
-          renderFrame({ image, frame, windowLevel, canvasElement, infoTextElement });
+          const renderingResult = renderFrame({
+            image,
+            frame: frame + next,
+            windowLevel,
+            canvasElement,
+            infoTextElement,
+          });
+          frame = renderingResult.frame;
         };
 
         canvasElement.onmousedown = (event) => {
@@ -154,7 +164,6 @@
           frame: opts.frame,
           windowLevel: opts.windowLevel,
         });
-        opts.windowLevel = renderingResult.windowLevel;
         const renderedPixels = new Uint8Array(renderingResult.pixels);
         const t1 = performance.now();
 

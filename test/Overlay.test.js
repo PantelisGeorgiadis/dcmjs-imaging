@@ -6,8 +6,6 @@ const {
   PixelRepresentation,
 } = require('./../src/Constants');
 
-const { arrayBuffersAreEqual } = require('./utils');
-
 const chai = require('chai');
 const expect = chai.expect;
 
@@ -47,7 +45,7 @@ describe('Overlay', () => {
     expect(overlay.getLabel()).to.be.eq('LABEL');
     expect(overlay.getNumberOfFrames()).to.be.eq(2);
     expect(overlay.getFrameOrigin()).to.be.eq(5);
-    expect(arrayBuffersAreEqual(overlay.getData()[0], overlayData[0])).to.be.true;
+    expect(new Uint8Array(overlay.getData()[0])).to.deep.equal(new Uint8Array(overlayData[0]));
   });
 
   it('should correctly discover overlays in DicomImage', () => {

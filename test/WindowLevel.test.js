@@ -25,6 +25,7 @@ describe('WindowLevel', () => {
       WindowCenterWidthExplanation: 'DESCRIPTION',
     });
     const windowLevel1 = WindowLevel.fromDicomImage(image1);
+    expect(windowLevel1.length).to.be.eq(1);
     expect(windowLevel1[0].getLevel()).to.be.eq(200);
     expect(windowLevel1[0].getWindow()).to.be.eq(100);
     expect(windowLevel1[0].getDescription()).to.be.eq('DESCRIPTION');
@@ -35,6 +36,7 @@ describe('WindowLevel', () => {
       WindowCenterWidthExplanation: ['DESCRIPTION1', 'DESCRIPTION2'],
     });
     const windowLevel2 = WindowLevel.fromDicomImage(image2);
+    expect(windowLevel2.length).to.be.eq(2);
     expect(windowLevel2[0].getLevel()).to.be.eq(200);
     expect(windowLevel2[0].getWindow()).to.be.eq(100);
     expect(windowLevel2[0].getDescription()).to.be.eq('DESCRIPTION1');
@@ -47,10 +49,12 @@ describe('WindowLevel', () => {
       WindowWidth: 1.1,
     });
     const windowLevel3 = WindowLevel.fromDicomImage(image3);
+    expect(windowLevel3.length).to.be.eq(1);
     expect(windowLevel3[0].getLevel()).to.be.eq(0.5);
     expect(windowLevel3[0].getWindow()).to.be.eq(1.1);
     expect(windowLevel3[0].getDescription()).to.be.undefined;
 
+    // Window width should be larger than 1
     const image4 = new DicomImage({
       WindowCenter: 0.5,
       WindowWidth: 0.1,
@@ -59,14 +63,12 @@ describe('WindowLevel', () => {
     expect(windowLevel4.length).to.be.eq(0);
   });
 
-  it('should throw for not parsable window or level values', () => {
+  it('should skip not parsable window or level values', () => {
     const image = new DicomImage({
       WindowCenter: 'WindowCenter',
       WindowWidth: 'WindowWidth',
     });
-
-    expect(() => {
-      WindowLevel.fromDicomImage(image);
-    }).to.throw();
+    const windowLevel = WindowLevel.fromDicomImage(image);
+    expect(windowLevel.length).to.be.eq(0);
   });
 });

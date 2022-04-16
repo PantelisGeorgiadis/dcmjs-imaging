@@ -13,12 +13,41 @@ const {
   PixelRepresentation,
 } = require('./../src/Constants');
 
-const { arrayBuffersAreEqual } = require('./utils');
-
 const chai = require('chai');
 const expect = chai.expect;
 
 describe('Pixel', () => {
+  it('should throw in case PixelPipeline methods are not implemented', () => {
+    class SubclassedPixelPipeline extends PixelPipeline {
+      constructor() {
+        super();
+      }
+    }
+    const subclassedPixelPipeline = new SubclassedPixelPipeline();
+
+    expect(() => {
+      subclassedPixelPipeline.getWidth();
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.getHeight();
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.getMinimumPixelValue();
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.getMaximumPixelValue();
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.getComponents();
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.render(undefined);
+    }).to.throw();
+    expect(() => {
+      subclassedPixelPipeline.calculateHistograms();
+    }).to.throw();
+  });
+
   it('should correctly construct a Pixel from DicomImage', () => {
     const rows = 512;
     const columns = 256;
@@ -35,6 +64,14 @@ describe('Pixel', () => {
     const smallestImagePixelValue = 152;
     const largestImagePixelValue = 1152;
     const pixelPaddingValue = 2000;
+    const redPaletteColorLookupTableDescriptor = [1, 2, 3];
+    const redPaletteColorLookupTableData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
+    const greenPaletteColorLookupTableData = [
+      Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer,
+    ];
+    const bluePaletteColorLookupTableData = [
+      Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer,
+    ];
     const pixelData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
 
     const image = new DicomImage(
@@ -54,6 +91,10 @@ describe('Pixel', () => {
         SmallestImagePixelValue: smallestImagePixelValue,
         LargestImagePixelValue: largestImagePixelValue,
         PixelPaddingValue: pixelPaddingValue,
+        RedPaletteColorLookupTableDescriptor: redPaletteColorLookupTableDescriptor,
+        RedPaletteColorLookupTableData: redPaletteColorLookupTableData,
+        GreenPaletteColorLookupTableData: greenPaletteColorLookupTableData,
+        BluePaletteColorLookupTableData: bluePaletteColorLookupTableData,
         PixelData: pixelData,
       },
       TransferSyntax.ImplicitVRLittleEndian
@@ -80,7 +121,19 @@ describe('Pixel', () => {
     expect(pixel.getSmallestImagePixelValue()).to.be.eq(smallestImagePixelValue);
     expect(pixel.getLargestImagePixelValue()).to.be.eq(largestImagePixelValue);
     expect(pixel.getPixelPaddingValue()).to.be.eq(pixelPaddingValue);
-    expect(arrayBuffersAreEqual(pixel.getPixelData()[0], pixelData[0])).to.be.true;
+    expect(pixel.getRedPaletteColorLookupTableDescriptor()).to.be.eq(
+      redPaletteColorLookupTableDescriptor
+    );
+    expect(new Uint8Array(pixel.getRedPaletteColorLookupTableData()[0])).to.deep.equal(
+      new Uint8Array(redPaletteColorLookupTableData[0])
+    );
+    expect(new Uint8Array(pixel.getGreenPaletteColorLookupTableData()[0])).to.deep.equal(
+      new Uint8Array(greenPaletteColorLookupTableData[0])
+    );
+    expect(new Uint8Array(pixel.getBluePaletteColorLookupTableData()[0])).to.deep.equal(
+      new Uint8Array(bluePaletteColorLookupTableData[0])
+    );
+    expect(new Uint8Array(pixel.getPixelData()[0])).to.deep.equal(new Uint8Array(pixelData[0]));
   });
 
   it('should throw for missing rendering parameters', () => {
