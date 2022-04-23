@@ -4,8 +4,10 @@ const {
   PlanarConfiguration,
   PhotometricInterpretation,
   PixelRepresentation,
+  StandardColorPalette,
 } = require('./../src/Constants');
 const WindowLevel = require('../src/WindowLevel');
+const ColorPalette = require('../src/ColorPalette');
 
 const { createImageFromPixelData } = require('./utils');
 
@@ -127,6 +129,8 @@ describe('DicomImage', () => {
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -164,12 +168,16 @@ describe('DicomImage', () => {
       pixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    const renderingResult = monoImage.render({
+      windowLevel: new WindowLevel(255, 255 / 2),
+      colorPalette: StandardColorPalette.Grayscale,
+    });
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -226,6 +234,7 @@ describe('DicomImage', () => {
     expect(renderingResult1.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult1.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult1.frame).to.be.eq(0);
+    expect(renderingResult1.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels1 = new Uint8Array(renderingResult1.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -245,6 +254,7 @@ describe('DicomImage', () => {
     expect(renderingResult2.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult2.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult2.frame).to.be.eq(1);
+    expect(renderingResult2.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels2 = new Uint8Array(renderingResult2.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -286,6 +296,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -327,6 +338,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -368,6 +380,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -409,6 +422,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).not.to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -450,6 +464,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.undefined;
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -500,6 +515,7 @@ describe('DicomImage', () => {
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.undefined;
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -507,6 +523,64 @@ describe('DicomImage', () => {
       expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
       expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p++]);
       expect(renderedPixels[i + 3]).to.be.eq(255);
+    }
+  });
+
+  it('should correctly render with StandardColorPalettes', () => {
+    const width = 3;
+    const height = 3;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0x7f, 0x00,
+      0xff, 0x00, 0xff,
+      0x00, 0x7f, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0x00, 0x7f, 0x00,
+      0xff, 0x00, 0xff,
+      0x00, 0x7f, 0x00,
+    ]);
+
+    const colorPalettes = Object.assign({}, StandardColorPalette);
+    delete colorPalettes.Grayscale;
+
+    const colorPaletteKeys = Object.keys(colorPalettes);
+    const randomColorPalette =
+      colorPalettes[colorPaletteKeys[(colorPaletteKeys.length * Math.random()) << 0]];
+
+    const monoImage = createImageFromPixelData(
+      width,
+      height,
+      8,
+      8,
+      1,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Monochrome2,
+      pixels.buffer,
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const renderingResult = monoImage.render({
+      windowLevel: new WindowLevel(255, 255 / 2),
+      colorPalette: randomColorPalette,
+    });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.eq(randomColorPalette);
+
+    const colorPalette = ColorPalette.getColorPaletteStandard(randomColorPalette);
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(
+        (renderedPixels[i + 3] << 0x18) |
+          (renderedPixels[i] << 0x10) |
+          (renderedPixels[i + 1] << 0x08) |
+          renderedPixels[i + 2]
+      ).to.be.eq(colorPalette[expectedRenderedPixels[p]]);
+      p++;
     }
   });
 });

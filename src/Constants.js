@@ -93,10 +93,11 @@ Object.freeze(PixelRepresentation);
  * @constant {Object}
  */
 const StandardColorPalette = {
-  HotIron: '1.2.840.10008.1.5.1',
-  Pet: '1.2.840.10008.1.5.2',
-  HotMetalBlue: '1.2.840.10008.1.5.3',
-  Pet20Step: '1.2.840.10008.1.5.4',
+  Grayscale: 0,
+  HotIron: 1,
+  Pet: 2,
+  HotMetalBlue: 3,
+  Pet20Step: 4,
 };
 Object.freeze(StandardColorPalette);
 //#endregion

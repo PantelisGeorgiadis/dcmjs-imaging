@@ -1,7 +1,12 @@
-const { RenderableTransferSyntaxes, TransferSyntax, OverlayColor } = require('./Constants');
+const {
+  RenderableTransferSyntaxes,
+  TransferSyntax,
+  OverlayColor,
+  StandardColorPalette,
+} = require('./Constants');
 const { PixelPipelineCache, LutPipelineCache } = require('./Cache');
+const { GrayscaleLutPipeline, RgbColorLutPipeline, PaletteColorLutPipeline } = require('./Lut');
 const { Pixel } = require('./Pixel');
-const { GrayscaleLutPipeline } = require('./Lut');
 const WindowLevel = require('./WindowLevel');
 const Overlay = require('./Overlay');
 
@@ -137,6 +142,7 @@ class DicomImage {
    * @property {WindowLevel} windowLevel - Window/level used to render the pixels.
    * @property {Array<Histogram>} histograms - Array of calculated per-channel histograms.
    * Histograms are calculated using the original pixel values.
+   * @property {StandardColorPalette} colorPalette - Color palette used to render the pixels.
    */
 
   /**
@@ -237,6 +243,7 @@ class DicomImage {
     // Returned objects
     let histograms = undefined;
     let windowLevel = undefined;
+    let colorPalette = opts.colorPalette;
     let renderingResult = {};
 
     // Window/level
@@ -252,13 +259,22 @@ class DicomImage {
     const pixel = new Pixel(this);
 
     // LUT pipeline
-    const lutPipeline = this.lutPipelineCache.getOrCreate(pixel, wl, frame, opts.colorPalette);
+    const lutPipeline = this.lutPipelineCache.getOrCreate(pixel, wl, frame, colorPalette);
     const lut = lutPipeline.getLut();
     if (lut && !lut.isValid()) {
       lut.recalculate();
     }
     if (lutPipeline instanceof GrayscaleLutPipeline) {
       windowLevel = lutPipeline.getWindowLevel();
+      if (colorPalette === undefined) {
+        colorPalette = StandardColorPalette.Grayscale;
+      }
+    }
+    if (
+      lutPipeline instanceof RgbColorLutPipeline ||
+      lutPipeline instanceof PaletteColorLutPipeline
+    ) {
+      colorPalette = undefined;
     }
 
     // Pixel pipeline
@@ -308,6 +324,9 @@ class DicomImage {
     }
     if (histograms) {
       renderingResult.histograms = histograms;
+    }
+    if (colorPalette !== undefined) {
+      renderingResult.colorPalette = colorPalette;
     }
 
     return renderingResult;

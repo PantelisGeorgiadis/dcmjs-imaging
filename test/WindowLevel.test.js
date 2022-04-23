@@ -61,6 +61,14 @@ describe('WindowLevel', () => {
     });
     const windowLevel4 = WindowLevel.fromDicomImage(image4);
     expect(windowLevel4.length).to.be.eq(0);
+
+    // Window width and center should have the same item count
+    const image5 = new DicomImage({
+      WindowCenter: [200, 300],
+      WindowWidth: [100],
+    });
+    const windowLevel5 = WindowLevel.fromDicomImage(image5);
+    expect(windowLevel5.length).to.be.eq(0);
   });
 
   it('should skip not parsable window or level values', () => {

@@ -5,6 +5,7 @@ const {
   PhotometricInterpretation,
   PixelRepresentation,
 } = require('./../src/Constants');
+const WindowLevel = require('../src/WindowLevel');
 
 const { createImageFromPixelData } = require('./utils');
 
@@ -45,7 +46,7 @@ describe('NativePixelDecoder', () => {
     sinon.restore();
   });
 
-  it('should correctly decode basic RleLossless', () => {
+  it('should correctly decode and render basic RleLossless', () => {
     const width = 3;
     const height = 3;
     // prettier-ignore
@@ -78,7 +79,6 @@ describe('NativePixelDecoder', () => {
       // RLE data
       0x08, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00
     ]);
-
     const monoImage = createImageFromPixelData(
       width,
       height,
@@ -92,11 +92,26 @@ describe('NativePixelDecoder', () => {
     );
     const pixel = new Pixel(monoImage);
     const rleDecodedData = NativePixelDecoder.decodeRle(pixel, rleData);
-
     expect(rleDecodedData).to.deep.equal(expectedImageData);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
   });
 
-  it('should correctly decode basic JpegBaselineProcess1', () => {
+  it('should correctly decode and render basic JpegBaselineProcess1', () => {
     const width = 3;
     const height = 3;
     // prettier-ignore
@@ -205,11 +220,26 @@ describe('NativePixelDecoder', () => {
     );
     const pixel = new Pixel(monoImage);
     const jpegBaselineDecodedData = NativePixelDecoder.decodeJpeg(pixel, jpegBaselineCodestream);
-
     expect(jpegBaselineDecodedData).to.deep.equal(expectedImageData);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
   });
 
-  it('should correctly decode basic JpegLsLossless', () => {
+  it('should correctly decode and render basic JpegLsLossless', () => {
     const width = 3;
     const height = 3;
     // prettier-ignore
@@ -274,11 +304,26 @@ describe('NativePixelDecoder', () => {
     );
     const pixel = new Pixel(monoImage);
     const jpegLsDecodedData = NativePixelDecoder.decodeJpegLs(pixel, jpegLsCodestream);
-
     expect(jpegLsDecodedData).to.deep.equal(expectedImageData);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
   });
 
-  it('should correctly decode basic Jpeg2000Lossless', () => {
+  it('should correctly decode and render basic Jpeg2000Lossless', () => {
     const width = 3;
     const height = 3;
     // prettier-ignore
@@ -392,7 +437,22 @@ describe('NativePixelDecoder', () => {
     );
     const pixel = new Pixel(monoImage);
     const jpeg2000DecodedData = NativePixelDecoder.decodeJpeg2000(pixel, jpeg2000Codestream);
-
     expect(jpeg2000DecodedData).to.deep.equal(expectedImageData);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
   });
 });

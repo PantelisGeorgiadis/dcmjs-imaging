@@ -1,8 +1,8 @@
 #include <emscripten.h>
-#include <emscripten/emscripten.h>
 
 #include "Buffer.h"
 #include "DecoderContext.h"
+#include "DecoderParameters.h"
 #include "Exception.h"
 
 #include "RleDecoder.h"
@@ -27,180 +27,8 @@ using namespace charls;
 extern "C" {
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE DecoderContext *CreateDecoderContext(void) {
-  return new DecoderContext;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void ReleaseDecoderContext(DecoderContext const *ctx) {
-  if (ctx) {
-    delete ctx;
-  }
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetColumns(DecoderContext const *ctx) {
-  return ctx->Columns;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetColumns(DecoderContext *ctx,
-                                     size_t const columns) {
-  ctx->Columns = columns;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetRows(DecoderContext const *ctx) {
-  return ctx->Rows;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetRows(DecoderContext *ctx, size_t const rows) {
-  ctx->Rows = rows;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetBitsAllocated(DecoderContext const *ctx) {
-  return ctx->BitsAllocated;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetBitsAllocated(DecoderContext *ctx,
-                                           size_t const bitsAllocated) {
-  ctx->BitsAllocated = bitsAllocated;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetBitsStored(DecoderContext const *ctx) {
-  return ctx->BitsStored;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetBitsStored(DecoderContext *ctx,
-                                        size_t const bitsStored) {
-  ctx->BitsStored = bitsStored;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetSamplesPerPixel(DecoderContext const *ctx) {
-  return ctx->SamplesPerPixel;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetSamplesPerPixel(DecoderContext *ctx,
-                                             size_t const samplesPerPixel) {
-  ctx->SamplesPerPixel = samplesPerPixel;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetPixelRepresentation(DecoderContext const *ctx) {
-  return ctx->PixelRepresentation;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void
-SetPixelRepresentation(DecoderContext *ctx, size_t const pixelRepresentation) {
-  ctx->PixelRepresentation = pixelRepresentation;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetPlanarConfiguration(DecoderContext const *ctx) {
-  return ctx->PlanarConfiguration;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void
-SetPlanarConfiguration(DecoderContext *ctx, size_t const planarConfiguration) {
-  ctx->PlanarConfiguration = planarConfiguration;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t
-GetPhotometricInterpretation(DecoderContext const *ctx) {
-  return ctx->PhotometricInterpretation;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void
-SetPhotometricInterpretation(DecoderContext *ctx,
-                             size_t const photometricInterpretation) {
-  ctx->PhotometricInterpretation = photometricInterpretation;
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE uint8_t *GetEncodedBuffer(DecoderContext const *ctx) {
-  return ctx->EncodedBuffer.GetData();
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetEncodedBufferSize(DecoderContext const *ctx) {
-  return ctx->EncodedBuffer.GetSize();
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void
-SetEncodedBuffer(DecoderContext *ctx, uint8_t const *data, size_t const size) {
-  ctx->EncodedBuffer.Reset(size);
-  memcpy(ctx->EncodedBuffer.GetData(), data, size);
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetEncodedBufferSize(DecoderContext *ctx,
-                                               size_t const size) {
-  ctx->EncodedBuffer.Reset(size);
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE uint8_t *GetDecodedBuffer(DecoderContext const *ctx) {
-  return ctx->DecodedBuffer.GetData();
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE size_t GetDecodedBufferSize(DecoderContext const *ctx) {
-  return ctx->DecodedBuffer.GetSize();
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void
-SetDecodedBuffer(DecoderContext *ctx, uint8_t const *data, size_t const size) {
-  ctx->DecodedBuffer.Reset(size);
-  memcpy(ctx->DecodedBuffer.GetData(), data, size);
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void SetDecodedBufferSize(DecoderContext *ctx,
-                                               size_t const size) {
-  ctx->DecodedBuffer.Reset(size);
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void DecodeRle(DecoderContext *ctx) {
+EMSCRIPTEN_KEEPALIVE void DecodeRle(DecoderContext *ctx,
+                                    DecoderParameters *params) {
   RleDecoder decoder(GetEncodedBuffer(ctx), GetEncodedBufferSize(ctx));
 
   auto const bytesAllocated =
@@ -230,7 +58,8 @@ EMSCRIPTEN_KEEPALIVE void DecodeRle(DecoderContext *ctx) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void DecodeJpeg(DecoderContext *ctx) {
+EMSCRIPTEN_KEEPALIVE void DecodeJpeg(DecoderContext *ctx,
+                                     DecoderParameters *params) {
   auto jpegBitDepth =
       ScanJpegDataForBitDepth(GetEncodedBuffer(ctx), GetEncodedBufferSize(ctx));
   if (jpegBitDepth == 0) {
@@ -241,11 +70,11 @@ EMSCRIPTEN_KEEPALIVE void DecodeJpeg(DecoderContext *ctx) {
   }
 
   if (jpegBitDepth <= 8) {
-    DecodeJpeg8(ctx);
+    DecodeJpeg8(ctx, params);
   } else if (jpegBitDepth <= 12) {
-    DecodeJpeg12(ctx);
+    DecodeJpeg12(ctx, params);
   } else if (jpegBitDepth <= 16) {
-    DecodeJpeg16(ctx);
+    DecodeJpeg16(ctx, params);
   } else {
     ThrowNativePixelDecoderException(
         "DecodeJpeg::Unsupported Jpeg bit depth (" + to_string(jpegBitDepth) +
@@ -255,27 +84,28 @@ EMSCRIPTEN_KEEPALIVE void DecodeJpeg(DecoderContext *ctx) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void DecodeJpegLs(DecoderContext *ctx) {
-  JlsParameters params;
-  memset(&params, 0, sizeof(params));
+EMSCRIPTEN_KEEPALIVE void DecodeJpegLs(DecoderContext *ctx,
+                                       DecoderParameters *params) {
+  JlsParameters jlsParams;
+  memset(&jlsParams, 0, sizeof(jlsParams));
 
   char errorMsg[256 + 1] = {'\0'};
-  auto retCode = JpegLsReadHeader(GetEncodedBuffer(ctx),
-                                  GetEncodedBufferSize(ctx), &params, errorMsg);
+  auto retCode = JpegLsReadHeader(
+      GetEncodedBuffer(ctx), GetEncodedBufferSize(ctx), &jlsParams, errorMsg);
   if (retCode != ApiResult::OK) {
     ThrowNativePixelDecoderException("DecodeJpegLs::JpegLsReadHeader::" +
                                      string(errorMsg));
   }
-  params.outputBgr = false;
+  jlsParams.outputBgr = false;
 
-  auto const bytesPerSample =
-      (params.bitsPerSample / 8) + (params.bitsPerSample % 8 == 0 ? 0 : 1);
-  SetDecodedBufferSize(ctx, params.width * params.height * params.components *
-                                bytesPerSample);
+  auto const bytesPerSample = (jlsParams.bitsPerSample / 8) +
+                              (jlsParams.bitsPerSample % 8 == 0 ? 0 : 1);
+  SetDecodedBufferSize(ctx, jlsParams.width * jlsParams.height *
+                                jlsParams.components * bytesPerSample);
 
   retCode = JpegLsDecode(GetDecodedBuffer(ctx), GetDecodedBufferSize(ctx),
                          GetEncodedBuffer(ctx), GetEncodedBufferSize(ctx),
-                         &params, errorMsg);
+                         &jlsParams, errorMsg);
   if (retCode != ApiResult::OK) {
     ThrowNativePixelDecoderException("DecodeJpegLs::JpegLsDecode::" +
                                      string(errorMsg));
@@ -284,7 +114,8 @@ EMSCRIPTEN_KEEPALIVE void DecodeJpegLs(DecoderContext *ctx) {
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-EMSCRIPTEN_KEEPALIVE void DecodeJpeg2000(DecoderContext *ctx) {
+EMSCRIPTEN_KEEPALIVE void DecodeJpeg2000(DecoderContext *ctx,
+                                         DecoderParameters *params) {
   Jpeg2000EncodedBuffer sourceBuffer(GetEncodedBuffer(ctx),
                                      GetEncodedBufferSize(ctx));
 
@@ -301,7 +132,18 @@ EMSCRIPTEN_KEEPALIVE void DecodeJpeg2000(DecoderContext *ctx) {
   opj_dparameters_t parameters;
   auto pStream =
       OpjCreateMemoryStream(&sourceBuffer, OPJ_J2K_STREAM_CHUNK_SIZE, true);
+  if (!pStream) {
+    ThrowNativePixelDecoderException(
+        "DecodeJpeg2000::OpjCreateMemoryStream::Failed to create stream");
+  }
+
   auto pCodec = opj_create_decompress(codecFormat);
+  if (!pCodec) {
+    opj_stream_destroy(pStream);
+    ThrowNativePixelDecoderException(
+        "DecodeJpeg2000::opj_create_decompress::Failed to create codec");
+  }
+
   opj_set_info_handler(pCodec, OpjMessageCallbackInfo, nullptr);
   opj_set_warning_handler(pCodec, OpjMessageCallbackWarning, nullptr);
   opj_set_error_handler(pCodec, OpjMessageCallbackError, nullptr);

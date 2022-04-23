@@ -244,6 +244,8 @@ cpp_files=(
     "$CHARLS_SRC_DIR/jpeg_stream_reader.cpp"
     "$CHARLS_SRC_DIR/jpeg_stream_writer.cpp"
 
+    "$WASM_SRC_DIR/DecoderContext.cpp"
+    "$WASM_SRC_DIR/DecoderParameters.cpp"
     "$WASM_SRC_DIR/Exception.cpp"
     "$WASM_SRC_DIR/Message.cpp"
     "$WASM_SRC_DIR/RleDecoder.cpp"

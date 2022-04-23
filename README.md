@@ -8,8 +8,13 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 **This effort is a work-in-progress and should not be used for production or clinical purposes.**
 
 ### Install
+#### Node.js
 
 	npm install dcmjs-imaging
+
+#### Browser
+
+	<script type="text/javascript" src="https://unpkg.com/dcmjs-imaging"></script>
 
 ### Build
 
@@ -42,8 +47,12 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 
 #### Basic image rendering
 ```js
+// Import objects in Node.js
 const dcmjsImaging = require('dcmjs-imaging');
 const { DicomImage, NativePixelDecoder } = dcmjsImaging;
+
+// Import objects in Browser
+const { DicomImage, NativePixelDecoder } = window.dcmjsImaging;
 
 // Optionally register native decoders WebAssembly.
 // If native decoders are not registered, only 
@@ -62,9 +71,14 @@ const renderedPixels = renderingResult.pixels;
 
 #### Advanced image rendering
 ```js
+// Import objects in Node.js
 const dcmjsImaging = require('dcmjs-imaging');
-const { DicomImage, NativePixelDecoder } = dcmjsImaging;
+const { DicomImage, WindowLevel, NativePixelDecoder } = dcmjsImaging;
 const { StandardColorPalette } = dcmjsImaging.constants;
+
+// Import objects in Browser
+const { DicomImage, WindowLevel, NativePixelDecoder } = window.dcmjsImaging;
+const { StandardColorPalette } = window.dcmjsImaging.constants;
 
 // Optionally register native decoders WebAssembly.
 // If native decoders are not registered, only 
@@ -91,7 +105,7 @@ const opts = {
   calculateHistograms: false,
   // Optional standard color palette.
   // If not provided, the grayscale palette is used.
-  colorPalette: StandardColorPalette.HotIron
+  colorPalette: StandardColorPalette.Grayscale
 };
 
 // Render image.
@@ -108,6 +122,9 @@ const windowLevel = renderingResult.windowLevel;
 // In case calculateHistograms rendering option is false
 // histograms should not be present.
 const histograms = renderingResult.histograms;
+// Color palette used to render the pixels.
+// In case of color images, colorPalette should not be present.
+const colorPalette = renderingResult.colorPalette;
 ```
 Please check a live example [here][dcmjs-imaging-live-example-url].
 

@@ -466,7 +466,9 @@ class Pixel {
         this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess1 ||
         this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess2_4
       ) {
-        return NativePixelDecoder.decodeJpeg(this, frameFragmentsData);
+        return NativePixelDecoder.decodeJpeg(this, frameFragmentsData, {
+          convertColorspaceToRgb: true,
+        });
       } else if (
         this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14 ||
         this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14V1
@@ -607,7 +609,8 @@ class PixelPipeline {
    * @returns {PixelPipeline} Pixel pipeline object.
    */
   static create(pixel, frame) {
-    const photometricInterpretation = pixel.getPhotometricInterpretation();
+    this._applyPipelineFixes(pixel);
+    let photometricInterpretation = pixel.getPhotometricInterpretation();
     if (
       photometricInterpretation === PhotometricInterpretation.Monochrome1 ||
       photometricInterpretation === PhotometricInterpretation.Monochrome2 ||
@@ -636,9 +639,7 @@ class PixelPipeline {
       photometricInterpretation == PhotometricInterpretation.Rgb ||
       photometricInterpretation == PhotometricInterpretation.YbrFull ||
       photometricInterpretation == PhotometricInterpretation.YbrFull422 ||
-      photometricInterpretation == PhotometricInterpretation.YbrPartial422 ||
-      photometricInterpretation == PhotometricInterpretation.YbrIct ||
-      photometricInterpretation == PhotometricInterpretation.YbrRct
+      photometricInterpretation == PhotometricInterpretation.YbrPartial422
     ) {
       let pixels = pixel.getFrameDataU8(frame);
       if (pixel.getPlanarConfiguration() === PlanarConfiguration.Planar) {
@@ -665,6 +666,38 @@ class PixelPipeline {
       );
     }
   }
+
+  //#region Private Methods
+  /**
+   * Applies common pipeline fixes.
+   * @method
+   * @static
+   * @private
+   * @param {Pixel} pixel - Pixel object.
+   */
+  static _applyPipelineFixes(pixel) {
+    // For color JPEG baseline datasets, colorspace is converted to RGB and
+    // planar configuration is set to interleaved in WebAssembly
+    if (
+      (pixel.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess1 ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess2_4) &&
+      pixel.getSamplesPerPixel() === 3
+    ) {
+      pixel.photometricInterpretation = PhotometricInterpretation.Rgb;
+      pixel.planarConfiguration = PlanarConfiguration.Interleaved;
+    }
+
+    // For color JPEG 2000 datasets, colorspace is converted to RGB in WebAssembly
+    if (
+      (pixel.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossless ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy) &&
+      (pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrRct ||
+        pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrIct)
+    ) {
+      pixel.photometricInterpretation = PhotometricInterpretation.Rgb;
+    }
+  }
+  //#endregion
 }
 //#endregion
 

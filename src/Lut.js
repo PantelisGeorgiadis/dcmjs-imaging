@@ -1,6 +1,6 @@
 const ColorPalette = require('./ColorPalette');
 const WindowLevel = require('./WindowLevel');
-const { PhotometricInterpretation } = require('./Constants');
+const { PhotometricInterpretation, StandardColorPalette } = require('./Constants');
 
 //#region Lut
 class Lut {
@@ -729,7 +729,7 @@ class LutPipeline {
         pixel.isSigned()
       );
       pipeline.setColorPalette(
-        colorPalette !== undefined
+        colorPalette !== undefined && colorPalette !== StandardColorPalette.Grayscale
           ? ColorPalette.getColorPaletteStandard(colorPalette)
           : photometricInterpretation === PhotometricInterpretation.Monochrome1
           ? ColorPalette.getColorPaletteMonochrome1()
@@ -931,8 +931,10 @@ class GrayscaleLutPipeline extends LutPipeline {
       if (this.rescaleLut !== undefined) {
         composite.addLut(this.rescaleLut);
       }
+
       composite.addLut(this.voiLut);
       composite.addLut(this.outputLut);
+
       if (this.invert) {
         composite.addLut(
           new InvertLut(

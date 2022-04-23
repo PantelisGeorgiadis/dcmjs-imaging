@@ -42,7 +42,6 @@ class NativeDecoders {
 
       createDecoderContext: instance.exports.CreateDecoderContext,
       releaseDecoderContext: instance.exports.ReleaseDecoderContext,
-
       getColumns: instance.exports.GetColumns,
       setColumns: instance.exports.SetColumns,
       getRows: instance.exports.GetRows,
@@ -68,6 +67,11 @@ class NativeDecoders {
       setDecodedBuffer: instance.exports.SetDecodedBuffer,
       setDecodedBufferSize: instance.exports.SetDecodedBufferSize,
 
+      createDecoderParameters: instance.exports.CreateDecoderParameters,
+      releaseDecoderParameters: instance.exports.ReleaseDecoderParameters,
+      getConvertColorspaceToRgb: instance.exports.GetConvertColorspaceToRgb,
+      setConvertColorspaceToRgb: instance.exports.SetConvertColorspaceToRgb,
+
       decodeRleFn: instance.exports.DecodeRle,
       decodeJpegFn: instance.exports.DecodeJpeg,
       decodeJpegLsFn: instance.exports.DecodeJpegLs,
@@ -81,15 +85,18 @@ class NativeDecoders {
    * @static
    * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
+   * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
    */
-  static decodeRle(pixel, data) {
+  static decodeRle(pixel, data, parameters) {
     if (!this.wasmApi) {
       throw new Error('NativePixelDecoder module is not initialized');
     }
 
     const ctx = this._createDecoderContext(pixel, data);
-    this.wasmApi.decodeRleFn(ctx);
+    const params = this._createDecoderParameters(parameters);
+    this.wasmApi.decodeRleFn(ctx, params);
+    this._releaseDecoderParameters(params);
 
     return this._releaseDecoderContext(ctx);
   }
@@ -100,15 +107,19 @@ class NativeDecoders {
    * @static
    * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
+   * @param {Object} [parameters] - Decoder parameters.
+   * @param {boolean} [parameters.convertColorspaceToRgb] - Convert colorspace to RGB.
    * @returns {Uint8Array} Decoded pixels data.
    */
-  static decodeJpeg(pixel, data) {
+  static decodeJpeg(pixel, data, parameters) {
     if (!this.wasmApi) {
       throw new Error('NativePixelDecoder module is not initialized');
     }
 
     const ctx = this._createDecoderContext(pixel, data);
-    this.wasmApi.decodeJpegFn(ctx);
+    const params = this._createDecoderParameters(parameters);
+    this.wasmApi.decodeJpegFn(ctx, params);
+    this._releaseDecoderParameters(params);
 
     return this._releaseDecoderContext(ctx);
   }
@@ -119,15 +130,18 @@ class NativeDecoders {
    * @static
    * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
+   * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
    */
-  static decodeJpegLs(pixel, data) {
+  static decodeJpegLs(pixel, data, parameters) {
     if (!this.wasmApi) {
       throw new Error('NativePixelDecoder module is not initialized');
     }
 
     const ctx = this._createDecoderContext(pixel, data);
-    this.wasmApi.decodeJpegLsFn(ctx);
+    const params = this._createDecoderParameters(parameters);
+    this.wasmApi.decodeJpegLsFn(ctx, params);
+    this._releaseDecoderParameters(params);
 
     return this._releaseDecoderContext(ctx);
   }
@@ -138,15 +152,18 @@ class NativeDecoders {
    * @static
    * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
+   * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
    */
-  static decodeJpeg2000(pixel, data) {
+  static decodeJpeg2000(pixel, data, parameters) {
     if (!this.wasmApi) {
       throw new Error('NativePixelDecoder module is not initialized');
     }
 
     const ctx = this._createDecoderContext(pixel, data);
-    this.wasmApi.decodeJpeg2000Fn(ctx);
+    const params = this._createDecoderParameters(parameters);
+    this.wasmApi.decodeJpeg2000Fn(ctx, params);
+    this._releaseDecoderParameters(params);
 
     return this._releaseDecoderContext(ctx);
   }
@@ -209,6 +226,42 @@ class NativeDecoders {
     this.wasmApi.releaseDecoderContext(ctx);
 
     return decodedData;
+  }
+
+  /**
+   * Creates the decoder parameters.
+   * @method
+   * @static
+   * @private
+   * @param {Object} [parameters] - Decoder parameters.
+   * @param {boolean} [parameters.convertColorspaceToRgb] - Convert colorspace to RGB.
+   * @returns {number} Decoder parameters pointer.
+   */
+  static _createDecoderParameters(parameters) {
+    parameters = parameters || {};
+    if (!this.wasmApi) {
+      throw new Error('NativePixelDecoder module is not initialized');
+    }
+
+    const params = this.wasmApi.createDecoderParameters();
+    this.wasmApi.setConvertColorspaceToRgb(params, parameters.convertColorspaceToRgb || false);
+
+    return params;
+  }
+
+  /**
+   * Releases the decoder parameters.
+   * @method
+   * @static
+   * @private
+   * @param {number} ctx - Decoder context pointer.
+   */
+  static _releaseDecoderParameters(params) {
+    if (!this.wasmApi) {
+      throw new Error('NativePixelDecoder module is not initialized');
+    }
+
+    this.wasmApi.releaseDecoderParameters(params);
   }
 
   /**

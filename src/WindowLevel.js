@@ -99,7 +99,7 @@ class WindowLevel {
     descriptions = !Array.isArray(descriptions) ? [descriptions] : descriptions;
 
     if (windowCenters.length !== windowWidths.length) {
-      throw new Error('Window center count does not match window width count');
+      return ret;
     }
 
     for (let i = 0; i < windowCenters.length; i++) {
