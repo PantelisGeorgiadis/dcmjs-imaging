@@ -80,16 +80,26 @@ const { StandardColorPalette } = dcmjsImaging.constants;
 const { DicomImage, WindowLevel, NativePixelDecoder } = window.dcmjsImaging;
 const { StandardColorPalette } = window.dcmjsImaging.constants;
 
+// Create native decoders WebAssembly initialization options.
+const initOpts = {
+  // Optionally, provide the path or URL to WebAssembly module.
+  // If empty or undefined, the module is trying to be resolved 
+  // within the same directory.
+  webAssemblyModulePathOrUrl: undefined,
+  // Optional flag to enable native decoder message logging.
+  // If not provided, the native decoder message logging is disabled.
+  logNativeDecodersMessages: false
+};
 // Optionally register native decoders WebAssembly.
 // If native decoders are not registered, only 
 // uncompressed syntaxes would be able to be rendered.
-await NativePixelDecoder.initializeAsync();
+await NativePixelDecoder.initializeAsync(initOpts);
 
 // Create an ArrayBuffer with the contents of the DICOM P10 byte stream.
 const image = new DicomImage(arrayBuffer);
 
 // Create image rendering options.
-const opts = {
+const renderingOpts = {
   // Optional frame index, in case of multiframe datasets.
   // If not provided, the first frame is rendered.
   frame: 0,
@@ -109,7 +119,7 @@ const opts = {
 };
 
 // Render image.
-const renderingResult = image.render(opts);
+const renderingResult = image.render(renderingOpts);
 
 // Rendered pixels in an RGBA ArrayBuffer.
 const renderedPixels = renderingResult.pixels;

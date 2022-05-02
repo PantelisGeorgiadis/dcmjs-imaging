@@ -61,9 +61,13 @@ describe('DicomImage', () => {
   it('should throw for not renderable transfer syntax UID', () => {
     const image = new DicomImage(
       {
+        Rows: 128,
+        Columns: 128,
+        BitsStored: 8,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
         PixelData: [Uint8Array.from([1, 2, 3, 4, 5]).buffer],
       },
-      TransferSyntax.JpegLsLossless
+      '1.2.3.4.5.6'
     );
 
     expect(() => {

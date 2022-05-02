@@ -27,12 +27,15 @@ class NativeDecoders {
    * @static
    * @async
    * @param {Object} [opts] - Native decoders options.
+   * @param {string} [opts.webAssemblyModulePathOrUrl] - Custom WebAssembly module path or URL.
+   * If not provided, the module is trying to be resolved within the same directory.
    * @param {boolean} [opts.logNativeDecodersMessages] - Flag to indicate whether
    * to log native decoders informational messages.
    */
   static async initializeAsync(opts) {
     opts = opts || {};
     this.logNativeDecodersMessages = opts.logNativeDecodersMessages || false;
+    this.webAssemblyModulePathOrUrl = opts.webAssemblyModulePathOrUrl;
 
     const instance = await this._createWebAssemblyInstance();
     this.wasmApi = {
@@ -456,15 +459,16 @@ class NativeDecoders {
       process.versions.node
     );
     if (!isNodeJs) {
-      const response = await eval('fetch(wasmFilename)');
+      const response = await eval('fetch(this.webAssemblyModulePathOrUrl || wasmFilename)');
 
       return await response.arrayBuffer();
     }
 
     const fs = eval("require('fs')");
     const path = eval("require('path')");
-    const wasmPath = path.join(process.cwd(), 'build', wasmFilename);
-    const buffer = await fs.promises.readFile(wasmPath);
+    const buffer = await fs.promises.readFile(
+      this.webAssemblyModulePathOrUrl || path.resolve(__dirname, wasmFilename)
+    );
 
     return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
   }
