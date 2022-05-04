@@ -860,6 +860,7 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
     return [histogram];
   }
 }
+//#endregion
 
 //#region ColorPixelPipeline
 class ColorPixelPipeline extends PixelPipeline {

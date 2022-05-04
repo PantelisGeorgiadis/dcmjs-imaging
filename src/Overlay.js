@@ -235,6 +235,7 @@ class Overlay {
     return ret;
   }
 }
+//#endregion
 
 //#region Exports
 module.exports = Overlay;
