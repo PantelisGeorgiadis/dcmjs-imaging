@@ -33,7 +33,7 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 - Explicit VR Big Endian (1.2.840.10008.1.2.2)
 - RLE Lossless (1.2.840.10008.1.2.5)\*
 - JPEG Baseline - Process 1 (1.2.840.10008.1.2.4.50)\*
-- JPEG Baseline - Processes 2 & 4 (1.2.840.10008.1.2.4.51)
+- JPEG Baseline - Processes 2 & 4 (1.2.840.10008.1.2.4.51)\*
 - JPEG Lossless, Nonhierarchical - Processes 14 (1.2.840.10008.1.2.4.57)\*
 - JPEG Lossless, Nonhierarchical, First-Order Prediction - Processes 14 [Selection Value 1] (1.2.840.10008.1.2.4.70)\*
 - JPEG-LS Lossless Image Compression (1.2.840.10008.1.2.4.80)\*

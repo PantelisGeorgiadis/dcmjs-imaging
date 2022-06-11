@@ -10,6 +10,7 @@ documentation/
 ## Root files
 .eslintrc.json
 .gitignore
+.gitattributes
 .jsdocrc.json
 .c8rc.json
 webpack.config.js
