@@ -209,7 +209,7 @@ class DicomImage {
       transferSyntaxUid === TransferSyntax.ImplicitVRLittleEndian
         ? TransferSyntax.ImplicitVRLittleEndian
         : TransferSyntax.ExplicitVRLittleEndian;
-    const denaturalizedDataset = DicomMessage.read(stream, syntaxLengthTypeToDecode, true);
+    const denaturalizedDataset = DicomMessage._read(stream, syntaxLengthTypeToDecode, true);
 
     return DicomMetaDictionary.naturalizeDataset(denaturalizedDataset);
   }

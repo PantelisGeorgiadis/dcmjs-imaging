@@ -27,6 +27,12 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 	./build.sh
 [Emscripten SDK (emsdk)][emscripten-sdk-url] is required.
 
+### Features
+- Renders single and multi-frame datasets with optional adjustment of window/level and color palette.
+- Decodes all major transfer syntaxes using a native WebAssembly module.
+- Outputs RGBA pixel arrays, suitable for use with HTML5 canvas or other imaging libraries.
+- Provides a common bundle for both Node.js and browser.
+
 ### Supported Transfer Syntaxes
 - Implicit VR Little Endian (1.2.840.10008.1.2)
 - Explicit VR Little Endian (1.2.840.10008.1.2.1)
