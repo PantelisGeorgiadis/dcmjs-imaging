@@ -58,6 +58,9 @@ module.exports = {
       }),
     ],
   },
+  externals: {
+    dcmjs: 'dcmjs',
+  },
   plugins: [
     new BannerPlugin({
       banner: getBanner(),

@@ -1,6 +1,6 @@
 {
   "name": "dcmjs-imaging",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "DICOM image and overlay rendering for Node.js and browser using dcmjs",
   "main": "build/dcmjs-imaging.min.js",
   "module": "build/dcmjs-imaging.min.js",
@@ -19,7 +19,9 @@
     "prepublish": "npm run build",
     "version": "node -p -e \"'module.exports = \\'' + require('./package.json').version + '\\';'\" > src/version.js",
     "webpack": "webpack --progress --config webpack.config.js",
-    "test": "mocha test/**/*.test.js",
+    "test:node": "mocha test/**/*.test.js",
+    "test:browser": "karma start karma.config.js",
+    "test": "npm run test:node && npm run test:browser",
     "format:cpp": "clang-format -i --glob=wasm/src/*.{h,cpp}",
     "lint": "eslint -c .eslintrc.json --fix src && prettier --tab-width 2 --single-quote true --print-width 100 --use-tabs false --write src/**/*.js test/**/*.js examples/**/*.{js,html}"
   },
@@ -39,12 +41,13 @@
   },
   "homepage": "https://github.com/PantelisGeorgiadis/dcmjs-imaging",
   "dependencies": {
-    "dcmjs": "^0.24.7",
+    "dcmjs": "^0.24.8",
     "loglevel": "^1.8.0",
     "loglevel-plugin-prefix": "^0.8.4"
   },
   "devDependencies": {
     "bmp-js": "^0.1.0",
+    "browserify": "^17.0.0",
     "c8": "^7.12.0",
     "chai": "^4.3.6",
     "clang-format": "^1.8.0",
@@ -52,6 +55,13 @@
     "docdash": "^1.2.0",
     "eslint": "^7.32.0",
     "jsdoc": "^3.6.11",
+    "karma": "^6.4.0",
+    "karma-browserify": "^8.1.0",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.1",
+    "karma-mocha": "^2.0.1",
+    "karma-mocha-reporter": "^2.2.5",
+    "karma-sinon": "^1.0.5",
     "mocha": "^10.0.0",
     "open-cli": "^7.0.1",
     "prettier": "^2.7.1",

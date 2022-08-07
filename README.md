@@ -14,6 +14,7 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 
 #### Browser
 
+	<script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
 	<script type="text/javascript" src="https://unpkg.com/dcmjs-imaging"></script>
 
 ### Build

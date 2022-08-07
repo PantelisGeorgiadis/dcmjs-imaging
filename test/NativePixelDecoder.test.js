@@ -34,11 +34,20 @@ describe('Uninitialized NativePixelDecoder', () => {
 
 describe('NativePixelDecoder', () => {
   before(async () => {
-    sinon.stub(NativePixelDecoder, '_getWebAssemblyBytes').callsFake(() => {
-      const wasmPath = path.join(process.cwd(), 'wasm', 'bin', 'native-pixel-decoder.wasm');
-      const buffer = fs.readFileSync(wasmPath);
-
-      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    sinon.stub(NativePixelDecoder, '_getWebAssemblyBytes').callsFake(async () => {
+      const isNodeJs = !!(
+        typeof process !== 'undefined' &&
+        process.versions &&
+        process.versions.node
+      );
+      if (isNodeJs) {
+        const wasmPath = path.join(process.cwd(), 'wasm', 'bin', 'native-pixel-decoder.wasm');
+        const buffer = fs.readFileSync(wasmPath);
+        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      }
+      // Karma tests
+      const response = await fetch('base/wasm/bin/native-pixel-decoder.wasm');
+      return await response.arrayBuffer();
     });
     await NativePixelDecoder.initializeAsync({ logNativeDecodersMessages: true });
   });
