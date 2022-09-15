@@ -52,7 +52,7 @@ class WindowLevel {
   /**
    * Gets description.
    * @method
-   * @returns {string} Description.
+   * @returns {string|undefined} Description or undefined if not provided.
    */
   getDescription() {
     return this.description;

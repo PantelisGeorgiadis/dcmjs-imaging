@@ -19,18 +19,18 @@ const ErrNo = {
 };
 Object.freeze(ErrNo);
 
-//#region NativeDecoders
-class NativeDecoders {
+//#region NativePixelDecoder
+class NativePixelDecoder {
   /**
-   * Initializes native decoders.
+   * Initializes native pixel decoder.
    * @method
    * @static
    * @async
-   * @param {Object} [opts] - Native decoders options.
+   * @param {Object} [opts] - Native pixel decoder options.
    * @param {string} [opts.webAssemblyModulePathOrUrl] - Custom WebAssembly module path or URL.
    * If not provided, the module is trying to be resolved within the same directory.
    * @param {boolean} [opts.logNativeDecodersMessages] - Flag to indicate whether
-   * to log native decoders informational messages.
+   * to log native pixel decoder informational messages.
    */
   static async initializeAsync(opts) {
     opts = opts || {};
@@ -90,6 +90,7 @@ class NativeDecoders {
    * @param {Uint8Array} data - Encoded pixels data.
    * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static decodeRle(pixel, data, parameters) {
     if (!this.wasmApi) {
@@ -113,6 +114,7 @@ class NativeDecoders {
    * @param {Object} [parameters] - Decoder parameters.
    * @param {boolean} [parameters.convertColorspaceToRgb] - Convert colorspace to RGB.
    * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static decodeJpeg(pixel, data, parameters) {
     if (!this.wasmApi) {
@@ -135,6 +137,7 @@ class NativeDecoders {
    * @param {Uint8Array} data - Encoded pixels data.
    * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static decodeJpegLs(pixel, data, parameters) {
     if (!this.wasmApi) {
@@ -157,6 +160,7 @@ class NativeDecoders {
    * @param {Uint8Array} data - Encoded pixels data.
    * @param {Object} [parameters] - Decoder parameters.
    * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static decodeJpeg2000(pixel, data, parameters) {
     if (!this.wasmApi) {
@@ -180,6 +184,7 @@ class NativeDecoders {
    * @param {Pixel} pixel - Pixel object.
    * @param {Uint8Array} data - Encoded pixels data.
    * @returns {number} Decoder context pointer.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static _createDecoderContext(pixel, data) {
     if (!this.wasmApi) {
@@ -214,6 +219,7 @@ class NativeDecoders {
    * @private
    * @param {number} ctx - Decoder context pointer.
    * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static _releaseDecoderContext(ctx) {
     if (!this.wasmApi) {
@@ -239,6 +245,7 @@ class NativeDecoders {
    * @param {Object} [parameters] - Decoder parameters.
    * @param {boolean} [parameters.convertColorspaceToRgb] - Convert colorspace to RGB.
    * @returns {number} Decoder parameters pointer.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static _createDecoderParameters(parameters) {
     parameters = parameters || {};
@@ -257,7 +264,8 @@ class NativeDecoders {
    * @method
    * @static
    * @private
-   * @param {number} ctx - Decoder context pointer.
+   * @param {number} params - Decoder parameters pointer.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static _releaseDecoderParameters(params) {
     if (!this.wasmApi) {
@@ -281,9 +289,11 @@ class NativeDecoders {
       wasi_snapshot_preview1: {
         /**
          * Gets the environment variables.
+         * @method
          * @param {number} envOffset - The environment.
          * @param {number} envBufferOffset - The address of the buffer.
          * @returns {number} Error code.
+         * @throws Error if NativePixelDecoder module is not initialized.
          */
         environ_get: (envOffset, envBufferOffset) => {
           if (!this.wasmApi) {
@@ -308,11 +318,12 @@ class NativeDecoders {
 
         /**
          * Get the size required to store the environment variables.
+         * @method
          * @param {number} envCount - The number of environment variables.
          * @param {number} envBufferSize -The size of the environment variables buffer.
          * @returns {number} Error code.
+         * @throws Error if NativePixelDecoder module is not initialized.
          */
-        // eslint-disable-next-line no-unused-vars
         environ_sizes_get: (envCount, envBufferSize) => {
           if (!this.wasmApi) {
             throw new Error('NativePixelDecoder module is not initialized');
@@ -335,7 +346,9 @@ class NativeDecoders {
 
         /**
          * Called on WebAssembly exit.
+         * @method
          * @param {number} rval - The return value.
+         * @throws Error if WebAssembly module exits.
          */
         proc_exit: (rval) => {
           throw new Error(`WebAssembly module exited with return value ${rval}`);
@@ -343,11 +356,13 @@ class NativeDecoders {
 
         /**
          * Writes to file descriptor.
+         * @method
          * @param {number} fd - The file descriptor.
          * @param {number} iovsOffset - The address of the scatter vector.
          * @param {number} iovsLength - The length of the scatter vector.
          * @param {number} nWritten - The number of items written.
          * @returns {number} Error code.
+         * @throws Error if NativePixelDecoder module is not initialized.
          */
         fd_write: (fd, iovsOffset, iovsLength, nWritten) => {
           if (!this.wasmApi) {
@@ -381,6 +396,7 @@ class NativeDecoders {
 
         /**
          * Seeks the file descriptor.
+         * @method
          * @param {number} fd - The file descriptor.
          * @param {number} offset - The offset.
          * @param {number} whence - Whence.
@@ -394,6 +410,7 @@ class NativeDecoders {
 
         /**
          * Closes the file descriptor.
+         * @method
          * @param {number} fd - The file descriptor.
          * @returns {number} Error code.
          */
@@ -405,6 +422,7 @@ class NativeDecoders {
       env: {
         /**
          * Called when memory has grown.
+         * @method
          * @param {number} index - Which memory has grown.
          */
         // eslint-disable-next-line no-unused-vars
@@ -412,6 +430,7 @@ class NativeDecoders {
 
         /**
          * Receives a string message from the WebAssembly.
+         * @method
          * @param {number} pointer - The string message pointer.
          * @param {number} pointer - The string message length.
          */
@@ -426,8 +445,10 @@ class NativeDecoders {
 
         /**
          * Receives an exception from the WebAssembly.
+         * @method
          * @param {number} pointer - The exception reason string pointer.
          * @param {number} pointer - The exception reason string length.
+         * @throws Error if NativePixelDecoder module exception occurs.
          */
         onNativePixelDecoderException: (pointer, len) => {
           const str = this._wasmToJsString(pointer, len);
@@ -482,6 +503,7 @@ class NativeDecoders {
    * @param {number} pointer - String pointer.
    * @param {number} len - String length.
    * @returns {string} The string object.
+   * @throws Error if NativePixelDecoder module is not initialized.
    */
   static _wasmToJsString(pointer, len) {
     if (!this.wasmApi) {
@@ -514,5 +536,5 @@ class NativeDecoders {
 //#endregion
 
 //#region Exports
-module.exports = NativeDecoders;
+module.exports = NativePixelDecoder;
 //#endregion

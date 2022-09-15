@@ -408,6 +408,9 @@ class Pixel {
    * @private
    * @param {number} frame - Frame index.
    * @returns {Uint8Array} Frame data as an array of unsigned byte values.
+   * @throws Error if requested frame is out of range, pixel data could not be extracted,
+   * width/height/bits allocated/stored/photometric interpretation has an invalid value or
+   * transfer syntax cannot be currently decoded.
    */
   _getFrameBuffer(frame) {
     if (frame < 0 || frame >= this.getNumberOfFrames()) {
@@ -499,6 +502,8 @@ class Pixel {
    * @param {number} pixelBuffers - Pixel data buffers.
    * @param {number} frame - Frame index.
    * @returns {Uint8Array} Frame data as an array of unsigned byte values.
+   * @throws Error if there are no fragmented pixel data or requested frame
+   * is larger or equal to the pixel fragments number.
    */
   _getFrameFragments(pixelBuffers, frame) {
     if (pixelBuffers.length === 0) {
@@ -539,6 +544,7 @@ class PixelPipeline {
    * Gets the image width.
    * @method
    * @returns {number} Width.
+   * @throws Error if getWidth is not implemented.
    */
   getWidth() {
     throw new Error('getWidth should be implemented');
@@ -548,6 +554,7 @@ class PixelPipeline {
    * Gets the image height.
    * @method
    * @returns {number} Height.
+   * @throws Error if getWidth is not implemented.
    */
   getHeight() {
     throw new Error('getHeight should be implemented');
@@ -557,6 +564,7 @@ class PixelPipeline {
    * Gets the minimum pixel value.
    * @method
    * @returns {number} Minimum pixel value.
+   * @throws Error if getMinimumPixelValue is not implemented.
    */
   getMinimumPixelValue() {
     throw new Error('getMinimumPixelValue should be implemented');
@@ -566,6 +574,7 @@ class PixelPipeline {
    * Gets the maximum pixel value.
    * @method
    * @returns {number} Maximum pixel value.
+   * @throws Error if getMaximumPixelValue is not implemented.
    */
   getMaximumPixelValue() {
     throw new Error('getMaximumPixelValue should be implemented');
@@ -575,6 +584,7 @@ class PixelPipeline {
    * Gets the image components.
    * @method
    * @returns {number} Components.
+   * @throws Error if getComponents is not implemented.
    */
   getComponents() {
     throw new Error('getComponents should be implemented');
@@ -585,6 +595,7 @@ class PixelPipeline {
    * @method
    * @param {Lut} [lut] - Lookup table.
    * @returns {Int32Array} Rendered pixels.
+   * @throws Error if render is not implemented.
    */
   // eslint-disable-next-line no-unused-vars
   render(lut) {
@@ -595,6 +606,7 @@ class PixelPipeline {
    * Calculates histograms.
    * @method
    * @returns {Array<Histogram>} Calculated histograms.
+   * @throws Error if calculateHistograms is not implemented.
    */
   calculateHistograms() {
     throw new Error('calculateHistograms should be implemented');
@@ -607,6 +619,8 @@ class PixelPipeline {
    * @param {Pixel} pixel - Pixel object.
    * @param {number} frame - Frame index.
    * @returns {PixelPipeline} Pixel pipeline object.
+   * @throws Error if bits stored or photometric interpretation
+   * pixel data value is not supported.
    */
   static create(pixel, frame) {
     this._applyPipelineFixes(pixel);
@@ -829,6 +843,7 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
    * @param {number} height - Image height.
    * @param {Uint8Array} data - Pixel data.
    * @returns {Uint8Array} Expanded pixels.
+   * @throws Error if an array item is not within the 0-255 range.
    */
   static _expandBits(width, height, data) {
     const output = new Uint8Array(width * height);
@@ -837,7 +852,7 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
       const bitIndex = i - 8 * byteIndex;
       const byteValue = data[byteIndex];
       if (byteValue < 0 || byteValue > 255) {
-        throw new Error('Array item must be in range: 0-255');
+        throw new Error('Array item must be in 0-255 range');
       }
       const bitValue = (byteValue >>> bitIndex) & 0x01;
       output[i] = bitValue ? 1 : 0;

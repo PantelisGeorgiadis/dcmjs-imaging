@@ -77,6 +77,7 @@ class Histogram {
 
   /**
    * Gets the value count at histogram bin.
+   * @param {number} bin - Bin position at which to get the value count.
    * @method
    * @returns {number|undefined} Value count at bin or undefined if bin does not exist.
    */
@@ -87,6 +88,15 @@ class Histogram {
     }
 
     return this.values[pos];
+  }
+
+  /**
+   * Gets the histogram description.
+   * @method
+   * @returns {string} Histogram description.
+   */
+  toString() {
+    return `Histogram Identifier: ${this.getIdentifier()}, Minimum: ${this.getMinimum()}, Maximum: ${this.getMaximum()}`;
   }
 }
 //#endregion

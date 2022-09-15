@@ -211,7 +211,7 @@ class Overlay {
   }
 
   /**
-   * Creates an array of overlay objects based on the image parameters.
+   * Creates an array of overlay objects based on the image elements.
    * @method
    * @static
    * @param {DicomImage} image - DICOM image object.

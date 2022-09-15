@@ -16,6 +16,7 @@ class LruCache {
   /**
    * Gets an item from the cache.
    * @method
+   * @param {Object} key - The item's key.
    * @returns {Object|undefined} The cached object or undefined.
    */
   get(key) {

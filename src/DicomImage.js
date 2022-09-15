@@ -21,7 +21,7 @@ class DicomImage {
    * @constructor
    * @param {Object|ArrayBuffer} [elementsOrBuffer] - Dataset elements as object or encoded as a DICOM dataset buffer.
    * @param {string} [transferSyntaxUid] - Dataset transfer syntax.
-   * @param {Object} [opts] - Options.
+   * @param {Object} [opts] - Image options.
    * @param {number} [opts.pixelPipelineCacheSize] - Pixel pipeline cache size.
    * @param {number} [opts.lutPipelineCacheSize] - LUT pipeline cache size.
    */
@@ -139,10 +139,10 @@ class DicomImage {
    * @property {number} frame - Rendered frame index.
    * @property {ArrayBuffer} pixels - Rendered pixels RGBA array buffer.
    * This format was chosen because it is suitable for rendering in a canvas object.
-   * @property {WindowLevel} windowLevel - Window/level used to render the pixels.
-   * @property {Array<Histogram>} histograms - Array of calculated per-channel histograms.
+   * @property {WindowLevel} [windowLevel] - Window/level used to render the pixels.
+   * @property {Array<Histogram>} [histograms] - Array of calculated per-channel histograms.
    * Histograms are calculated using the original pixel values.
-   * @property {StandardColorPalette} colorPalette - Color palette used to render the pixels.
+   * @property {StandardColorPalette} [colorPalette] - Color palette used to render the pixels.
    */
 
   /**
@@ -170,7 +170,7 @@ class DicomImage {
   toString() {
     const str = [];
     str.push('DICOM image:');
-    str.push('===============================================');
+    str.push('='.repeat(50));
     str.push(JSON.stringify(this.getElements()));
 
     return str.join('\n');
@@ -181,7 +181,7 @@ class DicomImage {
    * Loads a dataset from p10 buffer.
    * @method
    * @private
-   * @param {ArrayBuffer} arrayBuffer - p10 array buffer.
+   * @param {ArrayBuffer} arrayBuffer - DICOM P10 array buffer.
    * @returns {Object} Dataset elements and transfer syntax UID.
    */
   _fromP10Buffer(arrayBuffer) {
@@ -209,7 +209,9 @@ class DicomImage {
       transferSyntaxUid === TransferSyntax.ImplicitVRLittleEndian
         ? TransferSyntax.ImplicitVRLittleEndian
         : TransferSyntax.ExplicitVRLittleEndian;
-    const denaturalizedDataset = DicomMessage._read(stream, syntaxLengthTypeToDecode, true);
+    const denaturalizedDataset = DicomMessage._read(stream, syntaxLengthTypeToDecode, {
+      ignoreErrors: true,
+    });
 
     return DicomMetaDictionary.naturalizeDataset(denaturalizedDataset);
   }
@@ -225,6 +227,8 @@ class DicomImage {
    * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
    * @param {StandardColorPalette} [opts.colorPalette] - Color palette to use.
    * @returns {RenderingResult} Rendering result object.
+   * @throws Error if transfer syntax cannot be rendered, requested frame is out of range or
+   * optionally provided window level is not of type WindowLevel.
    */
   _render(opts) {
     if (!RenderableTransferSyntaxes.includes(this.getTransferSyntaxUid())) {
