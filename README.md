@@ -37,6 +37,7 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 ### Supported Transfer Syntaxes
 - Implicit VR Little Endian (1.2.840.10008.1.2)
 - Explicit VR Little Endian (1.2.840.10008.1.2.1)
+- Deflated Explicit VR Little Endian (1.2.840.10008.1.2.1.99)
 - Explicit VR Big Endian (1.2.840.10008.1.2.2)
 - RLE Lossless (1.2.840.10008.1.2.5)\*
 - JPEG Baseline - Process 1 (1.2.840.10008.1.2.4.50)\*
@@ -145,6 +146,9 @@ const colorPalette = renderingResult.colorPalette;
 ```
 Please check a live example [here][dcmjs-imaging-live-example-url].
 
+### Related libraries
+* [dcmjs-dimse][dcmjs-dimse-url] - DICOM DIMSE implementation for Node.js using dcmjs.
+
 ### License
 dcmjs-imaging is released under the MIT License.
 
@@ -160,6 +164,7 @@ dcmjs-imaging is released under the MIT License.
 [dcmjs-url]: https://github.com/dcmjs-org/dcmjs
 [fo-dicom-url]: https://github.com/fo-dicom/fo-dicom
 [mdcm-url]: https://github.com/fo-dicom/mdcm
+[dcmjs-dimse-url]: https://github.com/PantelisGeorgiadis/dcmjs-dimse
 
 [dcmjs-imaging-live-example-url]: https://unpkg.com/dcmjs-imaging@latest/build/index.html
 

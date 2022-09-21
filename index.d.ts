@@ -25,29 +25,98 @@ declare namespace TransferSyntax {
 }
 
 declare class Histogram {
+  /**
+   * Creates an instance of Histogram.
+   */
   constructor(identifier: string, min: number, max: number);
+
+  /**
+   * Gets histogram identifier.
+   */
   getIdentifier(): string;
+
+  /**
+   * Gets minimum value.
+   */
   getMinimum(): number;
+
+  /**
+   * Gets maximum value.
+   */
   getMaximum(): number;
+
+  /**
+   * Increments histogram at bin position.
+   */
   add(bin: number): void;
+
+  /**
+   * Resets histogram at bin position.
+   */
   clear(bin: number): void;
+
+  /**
+   * Gets the value count at histogram bin.
+   */
   get(bin: number): number | undefined;
+
+  /**
+   * Gets the histogram description.
+   */
   toString(): string;
 }
 
 declare class WindowLevel {
+  /**
+   * Creates an instance of WindowLevel.
+   */
   constructor(window: number, level: number, description?: string);
+
+  /**
+   * Gets window value.
+   */
   getWindow(): number;
+
+  /**
+   * Sets window value.
+   */
   setWindow(value: number): void;
+
+  /**
+   * Gets level value.
+   */
   getLevel(): number;
+
+  /**
+   * Sets level value.
+   */
   setLevel(value: number): void;
+
+  /**
+   * Gets description.
+   */
   getDescription(): string | undefined;
+
+  /**
+   * Sets description.
+   */
   setDescription(description: string): void;
+
+  /**
+   * Creates an array of window/level objects based on the image parameters.
+   */
   static fromDicomImage(image: DicomImage): Array<WindowLevel>;
+
+  /**
+   * Gets the window/level description.
+   */
   toString(): string;
 }
 
 declare class NativePixelDecoder {
+  /**
+   * Initializes native pixel decoder.
+   */
   static initializeAsync(opts?: {
     webAssemblyModulePathOrUrl?: string;
     logNativeDecodersMessages?: boolean;
@@ -55,6 +124,9 @@ declare class NativePixelDecoder {
 }
 
 declare class DicomImage {
+  /**
+   * Creates an instance of DicomImage.
+   */
   constructor(
     elementsOrBuffer?: Record<string, unknown> | ArrayBuffer,
     transferSyntaxUid?: string,
@@ -63,15 +135,55 @@ declare class DicomImage {
       lutPipelineCacheSize?: number;
     }
   );
-  getElement(tag: string): string;
+
+  /**
+   * Gets element value.
+   */
+  getElement(tag: string): string | undefined;
+
+  /**
+   * Sets element value.
+   */
   setElement(tag: string, value: string): void;
+
+  /**
+   * Gets all elements.
+   */
   getElements(): Record<string, unknown>;
+
+  /**
+   * Gets DICOM transfer syntax UID.
+   */
   getTransferSyntaxUid(): string;
+
+  /**
+   * Sets DICOM transfer syntax UID.
+   */
   setTransferSyntaxUid(transferSyntaxUid: string): void;
+
+  /**
+   * Gets elements encoded in a DICOM dataset buffer.
+   */
   getDenaturalizedDataset(): ArrayBuffer;
+
+  /**
+   * Gets the image width.
+   */
   getWidth(): number;
+
+  /**
+   * Gets the image height.
+   */
   getHeight(): number;
+
+  /**
+   * Gets the number of frames.
+   */
   getNumberOfFrames(): number;
+
+  /**
+   * Renders the image.
+   */
   render(opts?: {
     frame?: number;
     windowLevel?: WindowLevel;
@@ -85,9 +197,16 @@ declare class DicomImage {
     histograms?: Array<Histogram>;
     colorPalette?: number;
   };
+
+  /**
+   * Gets the image description.
+   */
   toString(): string;
 }
 
+/**
+ * Version.
+ */
 declare const version: string;
 
 export namespace constants {

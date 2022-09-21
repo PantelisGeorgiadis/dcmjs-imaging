@@ -51,7 +51,7 @@ class DicomImage {
    * Gets element value.
    * @method
    * @param {string} tag - Element tag.
-   * @returns {string} Element value.
+   * @returns {string|undefined} Element value or undefined if element doesn't exist.
    */
   getElement(tag) {
     return this.elements[tag];

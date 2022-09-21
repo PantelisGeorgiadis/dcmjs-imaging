@@ -11,6 +11,7 @@ const ColorPalette = require('../src/ColorPalette');
 
 const { createImageFromPixelData } = require('./utils');
 
+const pako = require('pako');
 const chai = require('chai');
 const expect = chai.expect;
 
@@ -465,6 +466,102 @@ describe('DicomImage', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     const renderingResult = rgbImage.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.colorPalette).to.be.undefined;
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+    }
+  });
+
+  it('should correctly render a deflated RGB color frame', () => {
+    const width = 3;
+    const height = 3;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+
+    const arrayBuffers = [];
+
+    // Preamble
+    arrayBuffers.push(new ArrayBuffer(128));
+
+    // DICM
+    const dicm = Uint8Array.from([
+      'D'.charCodeAt(0),
+      'I'.charCodeAt(0),
+      'C'.charCodeAt(0),
+      'M'.charCodeAt(0),
+    ]);
+    arrayBuffers.push(dicm.buffer.slice(dicm.byteOffset, dicm.byteOffset + dicm.byteLength));
+
+    // Meta info header
+    const metaElements = new DicomImage(
+      {
+        _vrMap: { FileMetaInformationVersion: 'OB' },
+        // length: 2(GROUP) + 2(ELEMENT) + 2(VR) + 2(RESERVED) + 4(VL) + X(EVEN DATA LENGTH)
+        FileMetaInformationGroupLength: 162,
+        FileMetaInformationVersion: new Uint8Array([0, 1]).buffer,
+        MediaStorageSOPClassUID: '1.2.840.10008.5.1.4.1.1.7',
+        MediaStorageSOPInstanceUID: '1.2.3.4.5.6.7.8.9.1',
+        TransferSyntaxUID: TransferSyntax.DeflatedExplicitVRLittleEndian,
+        ImplementationClassUID: '1.2.826.0.1.3680043.10.854',
+        ImplementationVersionName: 'DCMJS-IMAGING',
+      },
+      TransferSyntax.ExplicitVRLittleEndian
+    );
+    arrayBuffers.push(metaElements.getDenaturalizedDataset());
+
+    // Deflated dataset
+    const rgbImage = createImageFromPixelData(
+      width,
+      height,
+      8,
+      8,
+      3,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Rgb,
+      pixels.buffer,
+      TransferSyntax.ExplicitVRLittleEndian
+    );
+    const rgbElements = rgbImage.getElements();
+    rgbElements._vrMap = { PixelData: 'OB' };
+    const deflatedBuffer = pako.deflateRaw(rgbImage.getDenaturalizedDataset());
+    arrayBuffers.push(
+      deflatedBuffer.buffer.slice(
+        deflatedBuffer.byteOffset,
+        deflatedBuffer.byteOffset + deflatedBuffer.byteLength
+      )
+    );
+
+    const concatenatedArrayBuffer = arrayBuffers.reduce((pBuf, cBuf, i) => {
+      if (i === 0) {
+        return pBuf;
+      }
+      const tmp = new Uint8Array(pBuf.byteLength + cBuf.byteLength);
+      tmp.set(new Uint8Array(pBuf), 0);
+      tmp.set(new Uint8Array(cBuf), pBuf.byteLength);
+
+      return tmp.buffer;
+    }, arrayBuffers[0]);
+
+    const image = new DicomImage(concatenatedArrayBuffer);
+    const renderingResult = image.render();
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).to.be.undefined;
     expect(renderingResult.frame).to.be.eq(0);

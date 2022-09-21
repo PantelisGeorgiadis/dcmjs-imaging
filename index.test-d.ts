@@ -31,6 +31,9 @@ expectType<number>(windowLevel.getWindow());
 expectType<number>(windowLevel.getLevel());
 expectType<string | undefined>(windowLevel.getDescription());
 expectType<string>(windowLevel.toString());
+expectType<WindowLevel[]>(
+  WindowLevel.fromDicomImage(new DicomImage({}, TransferSyntax.ImplicitVRLittleEndian))
+);
 
 // Histogram
 expectError(new Histogram());

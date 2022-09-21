@@ -439,6 +439,7 @@ class Pixel {
     if (
       this.getTransferSyntaxUid() === TransferSyntax.ImplicitVRLittleEndian ||
       this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRLittleEndian ||
+      this.getTransferSyntaxUid() === TransferSyntax.DeflatedExplicitVRLittleEndian ||
       this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian
     ) {
       // Take the first buffer from pixel buffers

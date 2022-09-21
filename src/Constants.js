@@ -29,6 +29,7 @@ Object.freeze(TransferSyntax);
 const RenderableTransferSyntaxes = [
   TransferSyntax.ImplicitVRLittleEndian,
   TransferSyntax.ExplicitVRLittleEndian,
+  TransferSyntax.DeflatedExplicitVRLittleEndian,
   TransferSyntax.ExplicitVRBigEndian,
   TransferSyntax.RleLossless,
   TransferSyntax.JpegBaselineProcess1,
