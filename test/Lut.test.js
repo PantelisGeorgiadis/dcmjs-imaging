@@ -11,7 +11,8 @@ const {
   InvertLut,
   OutputLut,
   CompositeLut,
-  PrecalculatedLut,
+  PreCalculatedLut,
+  CachedLut,
 } = require('./../src/Lut');
 const { Pixel } = require('./../src/Pixel');
 const ColorPalette = require('./../src/ColorPalette');
@@ -202,7 +203,7 @@ describe('Lut', () => {
     }
   });
 
-  it('should return the correct values for PrecalculatedLut', () => {
+  it('should return the correct values for PreCalculatedLut', () => {
     const minValue = getRandomInteger(-65536, 0);
     const maxValue = getRandomInteger(0, 65536);
     const slope = getRandomNumber(0.0, 5.0);
@@ -212,7 +213,27 @@ describe('Lut', () => {
     const lut3 = new CompositeLut();
     lut3.addLut(lut1);
     lut3.addLut(lut2);
-    const lut = new PrecalculatedLut(lut3, minValue, maxValue);
+    const lut = new PreCalculatedLut(lut3, minValue, maxValue);
+    lut.recalculate();
+
+    expect(lut.getMinimumOutputValue()).to.be.eq(lut2.getMinimumOutputValue());
+    expect(lut.getMaximumOutputValue()).to.be.eq(lut2.getMaximumOutputValue());
+    for (let i = minValue; i <= maxValue; i++) {
+      expect(lut.getValue(i)).to.be.eq(lut2.getValue(lut1.getValue(i)));
+    }
+  });
+
+  it('should return the correct values for CachedLut', () => {
+    const minValue = getRandomInteger(-65536, 0);
+    const maxValue = getRandomInteger(0, 65536);
+    const slope = getRandomNumber(0.0, 5.0);
+    const intercept = getRandomNumber(0.0, 5.0);
+    const lut1 = new RescaleLut(minValue, maxValue, slope, intercept);
+    const lut2 = new InvertLut(minValue, maxValue);
+    const lut3 = new CompositeLut();
+    lut3.addLut(lut1);
+    lut3.addLut(lut2);
+    const lut = new CachedLut(lut3, minValue, maxValue);
     lut.recalculate();
 
     expect(lut.getMinimumOutputValue()).to.be.eq(lut2.getMinimumOutputValue());

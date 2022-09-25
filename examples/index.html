@@ -32,7 +32,9 @@
       <div class="content">
         <p id="infoText">
           <a id="openLink" href="">Open</a> or drag and drop a DICOM Part 10 file to render it!<br />Nothing
-          gets uploaded anywhere.
+          gets uploaded anywhere.<br /><br />While holding the left mouse button, move the mouse
+          over the image to adjust window/level.<br />Use mouse wheel to scroll through multiple
+          frames.
         </p>
         <canvas id="renderingCanvas"></canvas>
       </div>
@@ -41,6 +43,25 @@
   <script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
   <script type="text/javascript" src="dcmjs-imaging.min.js"></script>
   <script>
+    const BaseVertexShader = `
+            attribute vec2 position;
+            varying vec2 texCoords;
+            void main() {
+              texCoords = (position + 1.0) / 2.0;
+              texCoords.y = 1.0 - texCoords.y;
+              gl_Position = vec4(position, 0, 1.0);
+            }
+          `;
+    const BaseFragmentShader = `
+            precision highp float;
+            varying vec2 texCoords;
+            uniform sampler2D textureSampler;
+            void main() {
+              vec4 color = texture2D(textureSampler, texCoords);
+              gl_FragColor = color;
+            }
+          `;
+
     const { DicomImage, WindowLevel, NativePixelDecoder } = window.dcmjsImaging;
     window.onload = async (event) => {
       await NativePixelDecoder.initializeAsync();
@@ -65,15 +86,16 @@
         let windowLevel = undefined;
         let x = 0;
         let y = 0;
+        const useWebGl = isWebGLAvailable();
 
         const image = new DicomImage(arrayBuffer);
 
         const t1 = performance.now();
-        console.log('Parsing time: ' + (t1 - t0) + ' ms');
-        console.log('Width: ', image.getWidth());
-        console.log('Height: ', image.getHeight());
-        console.log('Number of frames: ', image.getNumberOfFrames());
-        console.log('Transfer syntax UID: ', image.getTransferSyntaxUid());
+        console.log(`Parsing time: ${t1 - t0} ms`);
+        console.log(`Width: ${image.getWidth()}`);
+        console.log(`Height: ${image.getHeight()}`);
+        console.log(`Number of frames: ${image.getNumberOfFrames()}`);
+        console.log(`Transfer syntax UID: ${image.getTransferSyntaxUid()}`);
 
         canvasElement.onwheel = (event) => {
           if (image.getNumberOfFrames() < 2) {
@@ -92,12 +114,13 @@
             windowLevel,
             canvasElement,
             infoTextElement,
+            useWebGl,
           });
           frame = renderingResult.frame;
         };
 
         canvasElement.onmousedown = (event) => {
-          if (!windowLevel) {
+          if (event.button !== 0 || !windowLevel) {
             return;
           }
           x = event.offsetX;
@@ -105,7 +128,7 @@
           windowing = true;
         };
         canvasElement.onmousemove = (event) => {
-          if (!windowLevel) {
+          if (event.button !== 0 || !windowLevel) {
             return;
           }
           if (windowing) {
@@ -128,12 +151,13 @@
               windowLevel,
               canvasElement,
               infoTextElement,
+              useWebGl,
             });
             windowLevel = renderingResult.windowLevel;
           }
         };
         canvasElement.onmouseup = (event) => {
-          if (!windowLevel) {
+          if (event.button !== 0 || !windowLevel) {
             return;
           }
           x = 0;
@@ -147,6 +171,7 @@
           windowLevel,
           canvasElement,
           infoTextElement,
+          useWebGl,
         });
         windowLevel = renderingResult.windowLevel;
       };
@@ -154,10 +179,8 @@
     }
 
     function renderFrame(opts) {
-      const ctx = opts.canvasElement.getContext('2d');
       opts.canvasElement.width = opts.image.getWidth();
       opts.canvasElement.height = opts.image.getHeight();
-      ctx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
 
       try {
         const t0 = performance.now();
@@ -168,27 +191,111 @@
         const renderedPixels = new Uint8Array(renderingResult.pixels);
         const t1 = performance.now();
 
-        const imageData = ctx.createImageData(opts.image.getWidth(), opts.image.getHeight());
-        const canvasPixels = imageData.data;
-        for (let i = 0; i < 4 * opts.image.getWidth() * opts.image.getHeight(); i++) {
-          canvasPixels[i] = renderedPixels[i];
+        if (opts.useWebGl) {
+          const gl = opts.canvasElement.getContext('webgl');
+          gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+          gl.clearColor(1.0, 1.0, 1.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+          gl.shaderSource(vertexShader, BaseVertexShader);
+          gl.compileShader(vertexShader);
+          if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            throw new Error('Error compiling vertex shader', gl.getShaderInfoLog(vertexShader));
+          }
+
+          const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+          gl.shaderSource(fragmentShader, BaseFragmentShader);
+          gl.compileShader(fragmentShader);
+          if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            throw new Error('Error compiling fragment shader', gl.getShaderInfoLog(vertexShader));
+          }
+
+          const program = gl.createProgram();
+          gl.attachShader(program, vertexShader);
+          gl.attachShader(program, fragmentShader);
+          gl.linkProgram(program);
+          if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            throw new Error('Error linking program', gl.getProgramInfoLog(program));
+          }
+          gl.validateProgram(program);
+          if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+            throw new Error('Error validating program', gl.getProgramInfoLog(program));
+          }
+          gl.useProgram(program);
+          gl.deleteShader(vertexShader);
+          gl.deleteShader(fragmentShader);
+
+          // prettier-ignore
+          const vertices = new Float32Array([
+            // Two triangles that fill the screen
+            -1, -1,  1, 
+            -1, -1,  1, 
+             1, -1, -1, 
+             1,  1,  1
+          ]);
+          const vertexBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+          const positionLocation = gl.getAttribLocation(program, 'position');
+          gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(positionLocation);
+
+          const texture = gl.createTexture();
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            opts.image.getWidth(),
+            opts.image.getHeight(),
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            renderedPixels
+          );
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+        } else {
+          const ctx = opts.canvasElement.getContext('2d');
+          tx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
+          const imageData = ctx.createImageData(opts.image.getWidth(), opts.image.getHeight());
+          const canvasPixels = imageData.data;
+          for (let i = 0; i < 4 * opts.image.getWidth() * opts.image.getHeight(); i++) {
+            canvasPixels[i] = renderedPixels[i];
+          }
+          ctx.putImageData(imageData, 0, 0);
         }
-        ctx.putImageData(imageData, 0, 0);
+
         const t2 = performance.now();
 
         opts.infoTextElement.innerHTML = '';
-        console.log('Rendering frame: ' + opts.frame);
+        console.log(`Rendering frame: ${opts.frame}`);
         if (renderingResult.windowLevel) {
-          console.log('Rendering window: ' + renderingResult.windowLevel.toString());
+          console.log(`Rendering window: ${renderingResult.windowLevel.toString()}`);
         }
-        console.log('Rendering time: ' + (t1 - t0) + ' ms');
-        console.log('Drawing time: ' + (t2 - t1) + ' ms');
+        console.log(`Rendering time: ${t1 - t0} ms`);
+        console.log(`Drawing time [${opts.useWebGl ? 'WebGL' : 'Canvas'}]: ${t2 - t1} ms`);
 
         return renderingResult;
       } catch (err) {
         opts.infoTextElement.innerText = 'Error: ' + err.message;
         throw err;
       }
+    }
+
+    function isWebGLAvailable() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+      return gl instanceof WebGLRenderingContext;
     }
 
     const dropZone = document.getElementById('dropZone');

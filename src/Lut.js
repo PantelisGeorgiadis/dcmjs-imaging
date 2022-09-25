@@ -623,10 +623,10 @@ class CompositeLut extends Lut {
 }
 //#endregion
 
-//#region PrecalculatedLut
-class PrecalculatedLut extends Lut {
+//#region PreCalculatedLut
+class PreCalculatedLut extends Lut {
   /**
-   * Creates an instance of PrecalculatedLut.
+   * Creates an instance of PreCalculatedLut.
    * @constructor
    * @param {Lut} minValue - LUT to precalculate.
    * @param {number} minValue - Minimum value.
@@ -702,6 +702,103 @@ class PrecalculatedLut extends Lut {
 }
 //#endregion
 
+//#region CachedLut
+class CachedLut extends Lut {
+  /**
+   * Creates an instance of CachedLut.
+   * @constructor
+   * @param {Lut} minValue - LUT to cache.
+   * @param {number} minValue - Minimum value.
+   * @param {number} maxValue - Maximum value.
+   */
+  constructor(lut, minValue, maxValue) {
+    super();
+
+    this.minValue = minValue;
+    this.maxValue = maxValue;
+    this.offset = -this.minValue;
+    this.lutCache = {};
+    this.lutCacheLength = this.maxValue - this.minValue + 1;
+    this.lut = lut;
+  }
+
+  /**
+   * Gets whether the LUT values are valid.
+   * @method
+   * @returns {boolean} Whether the LUT values are valid.
+   */
+  isValid() {
+    return this.lut.isValid();
+  }
+
+  /**
+   * Gets the minimum output value.
+   * @method
+   * @returns {number} Minimum output value.
+   */
+  getMinimumOutputValue() {
+    return this.lut.getMinimumOutputValue();
+  }
+
+  /**
+   * Gets the maximum output value.
+   * @method
+   * @returns {number} Maximum output value.
+   */
+  getMaximumOutputValue() {
+    return this.lut.getMaximumOutputValue();
+  }
+
+  /**
+   * Recalculates the LUT.
+   * @method
+   */
+  recalculate() {
+    if (!this.isValid()) {
+      this.lut.recalculate();
+    }
+  }
+
+  /**
+   * Gets LUT value.
+   * @method
+   * @param {number} input - Input value.
+   * @returns {number} LUT value.
+   */
+  getValue(input) {
+    const p = input + this.offset;
+    if (p < 0) {
+      return this._getOrCalculate(0);
+    }
+    if (p >= this.lutCacheLength) {
+      return this._getOrCalculate(this.lutCacheLength - 1);
+    }
+
+    return this._getOrCalculate(p);
+  }
+
+  //#region Private Methods
+  /**
+   * Get from the cache or calculates the LUT value.
+   * @method
+   * @private
+   * @param {number} input - Input value.
+   * @returns {number} LUT value.
+   */
+  _getOrCalculate(input) {
+    if (this.lutCache[input] !== undefined) {
+      return this.lutCache[input];
+    }
+
+    const value = this.lut.getValue(input - this.offset);
+    this.lutCache[input] = Math.trunc(value);
+
+    return value;
+  }
+  //#endregion
+}
+//#endregion
+
 //#region LutPipeline
 class LutPipeline {
   /**
@@ -766,6 +863,7 @@ class LutPipeline {
     }
   }
 
+  //#region Private Methods
   /**
    * Calculates the window/level based on pixel parameters.
    * @method
@@ -826,6 +924,7 @@ class LutPipeline {
 
     return new WindowLevel(Math.max(1, Math.abs(max - min)), (max + min) / 2.0);
   }
+  //#endregion
 }
 //#endregion
 
@@ -957,7 +1056,7 @@ class GrayscaleLutPipeline extends LutPipeline {
     }
 
     if (!this.precalculatedLut) {
-      this.precalculatedLut = new PrecalculatedLut(this.lut, this.minValue, this.maxValue);
+      this.precalculatedLut = new PreCalculatedLut(this.lut, this.minValue, this.maxValue);
     }
 
     return this.precalculatedLut;
@@ -1026,7 +1125,8 @@ module.exports = {
   PaletteColorLut,
   OutputLut,
   CompositeLut,
-  PrecalculatedLut,
+  PreCalculatedLut,
+  CachedLut,
   GrayscaleLutPipeline,
   RgbColorLutPipeline,
   PaletteColorLutPipeline,
