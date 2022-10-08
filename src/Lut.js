@@ -779,7 +779,7 @@ class CachedLut extends Lut {
 
   //#region Private Methods
   /**
-   * Get from the cache or calculates the LUT value.
+   * Gets from the cache or calculates the LUT value.
    * @method
    * @private
    * @param {number} input - Input value.
@@ -851,7 +851,10 @@ class LutPipeline {
       photometricInterpretation === PhotometricInterpretation.YbrFull422 ||
       photometricInterpretation === PhotometricInterpretation.YbrPartial422 ||
       photometricInterpretation === PhotometricInterpretation.YbrIct ||
-      photometricInterpretation === PhotometricInterpretation.YbrRct
+      photometricInterpretation === PhotometricInterpretation.YbrRct ||
+      photometricInterpretation === PhotometricInterpretation.Argb ||
+      photometricInterpretation === PhotometricInterpretation.Cmyk ||
+      photometricInterpretation === PhotometricInterpretation.Hsv
     ) {
       return new RgbColorLutPipeline();
     } else if (photometricInterpretation === PhotometricInterpretation.PaletteColor) {
@@ -867,8 +870,8 @@ class LutPipeline {
   /**
    * Calculates the window/level based on pixel parameters.
    * @method
-   * @private
    * @static
+   * @private
    * @param {Pixel} pixel - Pixel object.
    * @param {number} [frame] - Frame index.
    * @returns {WindowLevel} WindowLevel object.
@@ -885,23 +888,28 @@ class LutPipeline {
       if (smallestValue < largestValue) {
         return new WindowLevel(
           Math.abs(largestValue - smallestValue),
-          (largestValue + smallestValue) / 2.0
+          (largestValue + smallestValue) / 2.0,
+          'Smallest-largest value window'
         );
       }
     }
 
     // Actual pixel min/max values
     let frameData = undefined;
-    if (pixel.getBitsStored() <= 8) {
+    if (pixel.getBitsStored() === 1) {
+      return new WindowLevel(2.0, 1.0, 'Single-bit window');
+    } else if (pixel.getBitsStored() <= 8) {
       frameData = pixel.getFrameDataU8(frame);
     } else if (pixel.getBitsStored() <= 16) {
       frameData = pixel.isSigned() ? pixel.getFrameDataS16(frame) : pixel.getFrameDataU16(frame);
+    } else if (pixel.getBitsStored() <= 32) {
+      frameData = pixel.isSigned() ? pixel.getFrameDataS32(frame) : pixel.getFrameDataU32(frame);
     } else {
       throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
     }
 
-    let min = Infinity;
-    let max = -Infinity;
+    let min = frameData[0];
+    let max = frameData[0];
     const padding = pixel.getPixelPaddingValue();
     for (let i = 0; i < frameData.length; i++) {
       const p = frameData[i];
@@ -922,7 +930,11 @@ class LutPipeline {
     min = Math.trunc(min * pixel.getRescaleSlope() + pixel.getRescaleIntercept());
     max = Math.trunc(max * pixel.getRescaleSlope() + pixel.getRescaleIntercept());
 
-    return new WindowLevel(Math.max(1, Math.abs(max - min)), (max + min) / 2.0);
+    return new WindowLevel(
+      Math.max(1, Math.abs(max - min)),
+      (max + min) / 2.0,
+      'Min-max value window'
+    );
   }
   //#endregion
 }
@@ -941,8 +953,9 @@ class GrayscaleLutPipeline extends LutPipeline {
   constructor(slope, intercept, bitsStored, signed) {
     super();
 
-    this.minValue = signed ? -(1 << (bitsStored - 1)) : 0;
-    this.maxValue = signed ? (1 << (bitsStored - 1)) - 1 : (1 << bitsStored) - 1;
+    this.bitsStored = bitsStored;
+    this.minValue = signed ? -Math.pow(2, bitsStored - 1) : 0;
+    this.maxValue = signed ? Math.pow(2, bitsStored - 1) - 1 : Math.pow(2, bitsStored) - 1;
 
     this.rescaleLut = new RescaleLut(this.minValue, this.maxValue, slope, intercept);
     this.voiLut = new VoiLut(
@@ -953,7 +966,7 @@ class GrayscaleLutPipeline extends LutPipeline {
 
     this.invert = false;
     this.lut = undefined;
-    this.precalculatedLut = undefined;
+    this.precalculatedOrCachedLut = undefined;
   }
 
   /**
@@ -1055,11 +1068,14 @@ class GrayscaleLutPipeline extends LutPipeline {
       this.lut = composite;
     }
 
-    if (!this.precalculatedLut) {
-      this.precalculatedLut = new PreCalculatedLut(this.lut, this.minValue, this.maxValue);
+    if (!this.precalculatedOrCachedLut) {
+      this.precalculatedOrCachedLut =
+        this.bitsStored === 32
+          ? new CachedLut(this.lut, this.minValue, this.maxValue)
+          : new PreCalculatedLut(this.lut, this.minValue, this.maxValue);
     }
 
-    return this.precalculatedLut;
+    return this.precalculatedOrCachedLut;
   }
 }
 //#endregion

@@ -50,4 +50,25 @@ describe('ColorPalette', () => {
       expect(colorPalette[i] & 0xff).to.be.eq(i);
     }
   });
+
+  it('should throw for bad PALETTE COLOR data', () => {
+    const lut = [];
+    for (let i = 0; i < 256; i++) {
+      lut.push(i);
+    }
+
+    const image = new DicomImage(
+      {
+        RedPaletteColorLookupTableDescriptor: [256, 0, 8],
+        GreenPaletteColorLookupTableData: [Uint8Array.from(lut).buffer],
+        BluePaletteColorLookupTableData: [Uint8Array.from(lut).buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+
+    expect(() => {
+      const pixel = new Pixel(image);
+      ColorPalette.getColorPalettePaletteColor(pixel);
+    }).to.throw();
+  });
 });

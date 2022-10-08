@@ -286,11 +286,223 @@ describe('Pixel', () => {
       const g = rgbPixels[n + 1];
       const b = rgbPixels[n + 2];
 
-      ybrFullData[n] = 0.299 * r + 0.587 * g + 0.114 * b;
-      ybrFullData[n + 1] = -0.168736 * r - 0.331264 * g + 0.5 * b + 128;
-      ybrFullData[n + 2] = 0.5 * r - 0.418688 * g - 0.081312 * b + 128;
+      ybrFullData[n] = Math.trunc(0.299 * r + 0.587 * g + 0.114 * b);
+      ybrFullData[n + 1] = Math.trunc(-0.168736 * r - 0.331264 * g + 0.5 * b + 128);
+      ybrFullData[n + 2] = Math.trunc(0.5 * r - 0.418688 * g - 0.081312 * b + 128);
     }
     const convertedRgbPixels = PixelConverter.ybrFullToRgb(ybrFullData);
+    for (let i = 0; i < 3 * width * height; i++) {
+      expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly convert pixels from YBR_FULL_422 to RGB', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const rgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const ybrFull422Data = new Uint8Array(rgbPixels.length);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const r = rgbPixels[(y * width + x) * 3];
+        const g = rgbPixels[(y * width + x) * 3 + 1];
+        const b = rgbPixels[(y * width + x) * 3 + 2];
+
+        const n = Math.trunc(x / 2) * 4;
+        ybrFull422Data[y * width * 2 + n + Math.trunc(x % 2)] = Math.trunc(
+          0.299 * r + 0.587 * g + 0.114 * b + 0.5
+        );
+        ybrFull422Data[y * width * 2 + n + 2] = Math.trunc(
+          -0.1687 * r - 0.3313 * g + 0.5 * b + 128 + 0.5
+        );
+        ybrFull422Data[y * width * 2 + n + 3] = Math.trunc(
+          0.5 * r - 0.4187 * g - 0.0813 * b + 128 + 0.5
+        );
+      }
+    }
+    const convertedRgbPixels = PixelConverter.ybrFull422ToRgb(ybrFull422Data, width);
+    for (let i = 0; i < 3 * width * height; i++) {
+      expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly convert pixels from YBR_PARTIAL_422 to RGB', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const rgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const ybrPartial422Data = new Uint8Array(rgbPixels.length);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const r = rgbPixels[(y * width + x) * 3];
+        const g = rgbPixels[(y * width + x) * 3 + 1];
+        const b = rgbPixels[(y * width + x) * 3 + 2];
+
+        const n = Math.trunc(x / 2) * 4;
+        ybrPartial422Data[y * width * 2 + n + Math.trunc(x % 2)] = Math.trunc(
+          0.2568 * r + 0.5041 * g + 0.0979 * b + 16 + 0.5
+        );
+        ybrPartial422Data[y * width * 2 + n + 2] = Math.trunc(
+          -0.1482 * r - 0.291 * g + 0.4392 * b + 128 + 0.5
+        );
+        ybrPartial422Data[y * width * 2 + n + 3] = Math.trunc(
+          0.4392 * r - 0.3678 * g - 0.0714 * b + 128 + 0.5
+        );
+      }
+    }
+    const convertedRgbPixels = PixelConverter.ybrPartial422ToRgb(ybrPartial422Data, width);
+    for (let i = 0; i < 3 * width * height; i++) {
+      expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly convert pixels from ARGB to RGB', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const rgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const argbData = new Uint8Array(4 * width * height);
+    for (let n = 0, p = 0; n < rgbPixels.length; n += 3) {
+      argbData[p++] = 0xff;
+      argbData[p++] = rgbPixels[n];
+      argbData[p++] = rgbPixels[n + 1];
+      argbData[p++] = rgbPixels[n + 2];
+    }
+    const convertedRgbPixels = PixelConverter.argbToRgb(argbData, width, height);
+    for (let i = 0; i < 3 * width * height; i++) {
+      expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly convert pixels from CMYK to RGB', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const rgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const cmykData = new Uint8Array(4 * width * height);
+    for (let n = 0, p = 0; n < rgbPixels.length; n += 3) {
+      const c = 255 - rgbPixels[n];
+      const m = 255 - rgbPixels[n + 1];
+      const y = 255 - rgbPixels[n + 2];
+      const k = Math.min(y, Math.min(c, m));
+
+      cmykData[p++] = c - k;
+      cmykData[p++] = m - k;
+      cmykData[p++] = y - k;
+      cmykData[p++] = k;
+    }
+    const convertedRgbPixels = PixelConverter.cmykToRgb(cmykData, width, height);
+    for (let i = 0; i < 3 * width * height; i++) {
+      expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly convert pixels from HSV to RGB', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const rgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRgbPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+      0xff, 0xff, 0xff,   0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const hsvData = new Uint8Array(3 * width * height);
+    for (let n = 0; n < rgbPixels.length; n += 3) {
+      const r = rgbPixels[n];
+      const g = rgbPixels[n + 1];
+      const b = rgbPixels[n + 2];
+
+      const min = Math.min(r, g, b);
+      const max = Math.max(r, g, b);
+
+      let h = 0;
+      let s = 0;
+      let v = max;
+      if (v === 0) {
+        hsvData[n] = h;
+        hsvData[n + 1] = s;
+        hsvData[n + 2] = v;
+
+        continue;
+      }
+      s = Math.trunc((255 * (max - min)) / v);
+      if (s === 0) {
+        hsvData[n] = h;
+        hsvData[n + 1] = s;
+        hsvData[n + 2] = v;
+
+        continue;
+      }
+
+      if (max === r) {
+        h = 0 + (43 * (g - b)) / (max - min);
+      } else if (max === g) {
+        h = 85 + (43 * (b - r)) / (max - min);
+      } else {
+        h = 171 + (43 * (r - g)) / (max - min);
+      }
+
+      hsvData[n] = Math.trunc(h);
+      hsvData[n + 1] = Math.trunc(s);
+      hsvData[n + 2] = Math.trunc(v);
+    }
+    const convertedRgbPixels = PixelConverter.hsvToRgb(hsvData);
     for (let i = 0; i < 3 * width * height; i++) {
       expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
     }

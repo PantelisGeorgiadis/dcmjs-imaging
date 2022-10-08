@@ -220,22 +220,42 @@ class ColorPalette {
    * @throws Error if palette color LUT is missing.
    */
   static getColorPalettePaletteColor(pixel) {
-    const redDescriptor = pixel.getRedPaletteColorLookupTableDescriptor();
-    if (redDescriptor === undefined) {
-      throw new Error('Palette color LUT is missing from image');
-    }
-
     let size = 0;
     let bits = 0;
-    if (Array.isArray(redDescriptor) && redDescriptor.length > 1) {
+    const redDescriptor = pixel.getRedPaletteColorLookupTableDescriptor();
+    if (redDescriptor !== undefined && Array.isArray(redDescriptor) && redDescriptor.length > 1) {
       size = redDescriptor[0];
       bits = redDescriptor[2];
     }
     size = size === 0 ? 65536 : size;
+    bits = bits === 0 ? 16 : bits;
 
-    const r = new Uint8Array(pixel.getRedPaletteColorLookupTableData().find((o) => o));
-    const g = new Uint8Array(pixel.getGreenPaletteColorLookupTableData().find((o) => o));
-    const b = new Uint8Array(pixel.getBluePaletteColorLookupTableData().find((o) => o));
+    const redPaletteColorLutData = pixel.getRedPaletteColorLookupTableData();
+    const greenPaletteColorLutData = pixel.getGreenPaletteColorLookupTableData();
+    const bluePaletteColorLutData = pixel.getBluePaletteColorLookupTableData();
+    if (
+      redPaletteColorLutData === undefined ||
+      greenPaletteColorLutData === undefined ||
+      bluePaletteColorLutData === undefined
+    ) {
+      throw new Error('Palette color LUT data is missing');
+    }
+
+    const r = new Uint8Array(
+      Array.isArray(redPaletteColorLutData)
+        ? redPaletteColorLutData.find((o) => o)
+        : redPaletteColorLutData
+    );
+    const g = new Uint8Array(
+      Array.isArray(greenPaletteColorLutData)
+        ? greenPaletteColorLutData.find((o) => o)
+        : greenPaletteColorLutData
+    );
+    const b = new Uint8Array(
+      Array.isArray(bluePaletteColorLutData)
+        ? bluePaletteColorLutData.find((o) => o)
+        : bluePaletteColorLutData
+    );
 
     const colorPalette = new Array(size);
     if (r.length === size) {

@@ -60,6 +60,9 @@ const PhotometricInterpretation = {
   YbrPartial420: 'YBR_PARTIAL_420',
   YbrIct: 'YBR_ICT',
   YbrRct: 'YBR_RCT',
+  Cmyk: 'CMYK',
+  Argb: 'ARGB',
+  Hsv: 'HSV',
 };
 Object.freeze(PhotometricInterpretation);
 //#endregion

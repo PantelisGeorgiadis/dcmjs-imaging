@@ -156,7 +156,7 @@ class Pixel {
    * @returns {number} Minimum pixel value.
    */
   getMinimumPixelValue() {
-    return this.isSigned() ? -(1 << (this.getBitsStored() - 1)) : 0;
+    return this.isSigned() ? -Math.pow(2, this.getBitsStored() - 1) : 0;
   }
 
   /**
@@ -166,8 +166,8 @@ class Pixel {
    */
   getMaximumPixelValue() {
     return this.isSigned()
-      ? (1 << (this.getBitsStored() - 1)) - 1
-      : (1 << this.getBitsStored()) - 1;
+      ? Math.pow(2, this.getBitsStored() - 1) - 1
+      : Math.pow(2, this.getBitsStored()) - 1;
   }
 
   /**
@@ -204,7 +204,7 @@ class Pixel {
    */
   getUncompressedFrameSize() {
     if (this.getBitsAllocated() === 1) {
-      return (this.getWidth() * this.getHeight() - 1) / 8 + 1;
+      return Math.trunc((this.getWidth() * this.getHeight() - 1) / 8 + 1);
     }
     if (this.getPhotometricInterpretation() == PhotometricInterpretation.YbrFull422) {
       const syntax = this.getTransferSyntaxUid();
@@ -370,6 +370,35 @@ class Pixel {
   }
 
   /**
+   * Gets the pixel data as an array of unsigned integer values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @returns {Uint32Array} Pixel data as an array of unsigned integer values.
+   */
+  getFrameDataU32(frame) {
+    const frameBuffer = this._getFrameBuffer(frame);
+
+    return new Uint32Array(
+      frameBuffer.buffer,
+      frameBuffer.byteOffset,
+      frameBuffer.byteLength / Uint32Array.BYTES_PER_ELEMENT
+    );
+  }
+
+  /**
+   * Gets the pixel data as an array of signed integer values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @returns {Int32Array} Pixel data as an array of signed integer values.
+   */
+  getFrameDataS32(frame) {
+    const u32 = this.getFrameDataU32(frame);
+    const s32 = new Int32Array(u32);
+
+    return s32;
+  }
+
+  /**
    * Gets the pixel description.
    * @method
    * @returns {string} Pixel description.
@@ -442,26 +471,36 @@ class Pixel {
       this.getTransferSyntaxUid() === TransferSyntax.DeflatedExplicitVRLittleEndian ||
       this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian
     ) {
-      // Take the first buffer from pixel buffers
-      let pixelBuffer = new Uint8Array(
-        Array.isArray(pixelBuffers) ? pixelBuffers.find((o) => o) : pixelBuffers
-      );
-      if (
-        this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian &&
-        this.getBitsStored() > 8 &&
-        this.getBitsStored() <= 16
-      ) {
-        for (let i = 0; i < pixelBuffer.length; i += 2) {
-          const holder = pixelBuffer[i];
-          pixelBuffer[i] = pixelBuffer[i + 1];
-          pixelBuffer[i + 1] = holder;
-        }
-      }
-
       const frameSize = this.getUncompressedFrameSize();
       const frameOffset = frameSize * frame;
 
-      return pixelBuffer.slice(frameOffset, frameOffset + frameSize);
+      // Take the first buffer from pixel buffers and extract the current frame data
+      let pixelBuffer = new Uint8Array(
+        Array.isArray(pixelBuffers) ? pixelBuffers.find((o) => o) : pixelBuffers
+      );
+      const framePixelBuffer = pixelBuffer.slice(frameOffset, frameOffset + frameSize);
+
+      // Swap endianness, if necessary
+      if (this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian) {
+        if (this.getBitsAllocated() > 8 && this.getBitsAllocated() <= 16) {
+          for (let i = 0; i < framePixelBuffer.length; i += 2) {
+            const holder = framePixelBuffer[i];
+            framePixelBuffer[i] = framePixelBuffer[i + 1];
+            framePixelBuffer[i + 1] = holder;
+          }
+        } else if (this.getBitsAllocated() <= 32) {
+          for (let i = 0; i < framePixelBuffer.length; i += 4) {
+            let holder = framePixelBuffer[i];
+            framePixelBuffer[i] = framePixelBuffer[i + 1];
+            framePixelBuffer[i + 1] = holder;
+            holder = framePixelBuffer[i + 2];
+            framePixelBuffer[i + 2] = framePixelBuffer[i + 3];
+            framePixelBuffer[i + 3] = holder;
+          }
+        }
+      }
+
+      return framePixelBuffer;
     } else {
       const frameFragmentsData = this._getFrameFragments(pixelBuffers, frame);
       if (this.getTransferSyntaxUid() === TransferSyntax.RleLossless) {
@@ -631,7 +670,17 @@ class PixelPipeline {
       photometricInterpretation === PhotometricInterpretation.Monochrome2 ||
       photometricInterpretation === PhotometricInterpretation.PaletteColor
     ) {
-      if (pixel.getBitsStored() <= 8) {
+      if (pixel.getBitsStored() === 1) {
+        return new SingleBitPixelPipeline(
+          pixel.getWidth(),
+          pixel.getHeight(),
+          pixel.getFrameDataU8(frame)
+        );
+      } else if (
+        pixel.getBitsAllocated() === 8 &&
+        pixel.getHighBit() === 7 &&
+        pixel.getBitsStored() === 8
+      ) {
         return new GrayscalePixelPipeline(
           pixel.getWidth(),
           pixel.getHeight(),
@@ -639,13 +688,21 @@ class PixelPipeline {
           pixel.getMaximumPixelValue(),
           pixel.getFrameDataU8(frame)
         );
-      } else if (pixel.getBitsStored() <= 16) {
+      } else if (pixel.getBitsAllocated() <= 16) {
         return new GrayscalePixelPipeline(
           pixel.getWidth(),
           pixel.getHeight(),
           pixel.getMinimumPixelValue(),
           pixel.getMaximumPixelValue(),
           pixel.isSigned() ? pixel.getFrameDataS16(frame) : pixel.getFrameDataU16(frame)
+        );
+      } else if (pixel.getBitsAllocated() <= 32) {
+        return new GrayscalePixelPipeline(
+          pixel.getWidth(),
+          pixel.getHeight(),
+          pixel.getMinimumPixelValue(),
+          pixel.getMaximumPixelValue(),
+          pixel.isSigned() ? pixel.getFrameDataS32(frame) : pixel.getFrameDataU32(frame)
         );
       } else {
         throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
@@ -654,7 +711,10 @@ class PixelPipeline {
       photometricInterpretation == PhotometricInterpretation.Rgb ||
       photometricInterpretation == PhotometricInterpretation.YbrFull ||
       photometricInterpretation == PhotometricInterpretation.YbrFull422 ||
-      photometricInterpretation == PhotometricInterpretation.YbrPartial422
+      photometricInterpretation == PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation == PhotometricInterpretation.Cmyk ||
+      photometricInterpretation == PhotometricInterpretation.Argb ||
+      photometricInterpretation == PhotometricInterpretation.Hsv
     ) {
       let pixels = pixel.getFrameDataU8(frame);
       if (pixel.getPlanarConfiguration() === PlanarConfiguration.Planar) {
@@ -666,6 +726,22 @@ class PixelPipeline {
         pixels = PixelConverter.ybrFull422ToRgb(pixels, pixel.getWidth());
       } else if (photometricInterpretation == PhotometricInterpretation.YbrPartial422) {
         pixels = PixelConverter.ybrPartial422ToRgb(pixels, pixel.getWidth());
+      } else if (photometricInterpretation == PhotometricInterpretation.Cmyk) {
+        if (pixel.getSamplesPerPixel() !== 4) {
+          throw new Error(
+            `Unsupported samples per pixel value for CMYK: ${pixel.getSamplesPerPixel()}`
+          );
+        }
+        pixels = PixelConverter.cmykToRgb(pixels, pixel.getWidth(), pixel.getHeight());
+      } else if (photometricInterpretation == PhotometricInterpretation.Argb) {
+        if (pixel.getSamplesPerPixel() !== 4) {
+          throw new Error(
+            `Unsupported samples per pixel value for ARGB: ${pixel.getSamplesPerPixel()}`
+          );
+        }
+        pixels = PixelConverter.argbToRgb(pixels, pixel.getWidth(), pixel.getHeight());
+      } else if (photometricInterpretation == PhotometricInterpretation.Hsv) {
+        pixels = PixelConverter.hsvToRgb(pixels);
       }
 
       return new ColorPixelPipeline(
@@ -997,13 +1073,14 @@ class PixelConverter {
   /**
    * Converts 24 bits pixels from planar (RRR...GGG...BBB...) to interleaved (RGB).
    * @method
+   * @static
    * @param {Uint8Array} data - Pixels data in planar format (RRR...GGG...BBB...).
    * @returns {Uint8Array} Pixels data in interleaved format (RGB).
    */
   static planarToInterleaved24(data) {
     const output = new Uint8Array(data.length);
-    const pixelCount = data.length / 3;
-    for (let n = 0; n < data.length / 3; n++) {
+    const pixelCount = Math.trunc(data.length / 3);
+    for (let n = 0; n < pixelCount; n++) {
       output[n * 3] = data[n];
       output[n * 3 + 1] = data[n + pixelCount * 1];
       output[n * 3 + 2] = data[n + pixelCount * 2];
@@ -1015,6 +1092,7 @@ class PixelConverter {
   /**
    * Converts YBR_FULL photometric interpretation pixels to RGB.
    * @method
+   * @static
    * @param {Uint8Array} data - Array of YBR_FULL photometric interpretation pixels.
    * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
    */
@@ -1025,9 +1103,13 @@ class PixelConverter {
       const b = data[n + 1];
       const r = data[n + 2];
 
-      output[n] = Math.min(Math.max(y + 1.402 * (r - 128) + 0.5, 0), 255);
-      output[n + 1] = Math.min(Math.max(y - 0.3441 * (b - 128) - 0.7141 * (r - 128) + 0.5, 0), 255);
-      output[n + 2] = Math.min(Math.max(y + 1.772 * (b - 128) + 0.5, 0), 255);
+      output[n] = this._truncAndClamp(y + 1.402 * (r - 128) + 0.5, 0x00, 0xff);
+      output[n + 1] = this._truncAndClamp(
+        y - 0.3441 * (b - 128) - 0.7141 * (r - 128) + 0.5,
+        0x00,
+        0xff
+      );
+      output[n + 2] = this._truncAndClamp(y + 1.772 * (b - 128) + 0.5, 0x00, 0xff);
     }
 
     return output;
@@ -1036,37 +1118,39 @@ class PixelConverter {
   /**
    * Converts YBR_FULL_422 photometric interpretation pixels to RGB.
    * @method
+   * @static
    * @param {Uint8Array} data - Array of YBR_FULL_422 photometric interpretation pixels.
    * @param {number} width - Image width.
    * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
    */
-  /* c8 ignore start */
   static ybrFull422ToRgb(data, width) {
-    const output = new Uint8Array((data.length / 4) * 2 * 3);
+    const output = new Uint8Array(Math.trunc((data.length / 4) * 2 * 3));
     for (let n = 0, p = 0, col = 0; n < data.length; ) {
       const y1 = data[n++];
       const y2 = data[n++];
       const cb = data[n++];
       const cr = data[n++];
 
-      output[p++] = Math.min(Math.max(y1 + 1.402 * (cr - 128) + 0.5, 0), 255);
-      output[p++] = Math.min(
-        Math.max(y1 - 0.3441 * (cb - 128) - 0.7141 * (cr - 128) + 0.5, 0),
-        255
+      output[p++] = this._truncAndClamp(y1 + 1.402 * (cr - 128) + 0.5, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(
+        y1 - 0.3441 * (cb - 128) - 0.7141 * (cr - 128) + 0.5,
+        0x00,
+        0xff
       );
-      output[p++] = Math.min(Math.max(y1 + 1.772 * (cb - 128) + 0.5, 0), 255);
+      output[p++] = this._truncAndClamp(y1 + 1.772 * (cb - 128) + 0.5, 0x00, 0xff);
 
       if (++col === width) {
         col = 0;
         continue;
       }
 
-      output[p++] = Math.min(Math.max(y2 + 1.402 * (cr - 128) + 0.5, 0), 255);
-      output[p++] = Math.min(
-        Math.max(y2 - 0.3441 * (cb - 128) - 0.7141 * (cr - 128) + 0.5, 0),
-        255
+      output[p++] = this._truncAndClamp(y2 + 1.402 * (cr - 128) + 0.5, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(
+        y2 - 0.3441 * (cb - 128) - 0.7141 * (cr - 128) + 0.5,
+        0x00,
+        0xff
       );
-      output[p++] = Math.min(Math.max(y2 + 1.772 * (cb - 128) + 0.5, 0), 255);
+      output[p++] = this._truncAndClamp(y2 + 1.772 * (cb - 128) + 0.5, 0x00, 0xff);
 
       if (++col === width) {
         col = 0;
@@ -1075,42 +1159,43 @@ class PixelConverter {
 
     return output;
   }
-  /* c8 ignore stop */
 
   /**
    * Converts YBR_PARTIAL_422 photometric interpretation pixels to RGB.
    * @method
+   * @static
    * @param {Uint8Array} data - Array of YBR_PARTIAL_422 photometric interpretation pixels.
    * @param {number} width - Image width.
    * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
    */
-  /* c8 ignore start */
   static ybrPartial422ToRgb(data, width) {
-    const output = new Uint8Array((data.length / 4) * 2 * 3);
+    const output = new Uint8Array(Math.trunc((data.length / 4) * 2 * 3));
     for (let n = 0, p = 0, col = 0; n < data.length; ) {
       const y1 = data[n++];
       const y2 = data[n++];
       const cb = data[n++];
       const cr = data[n++];
 
-      output[p++] = Math.min(Math.max(1.1644 * (y1 - 16) + 1.596 * (cr - 128) + 0.5, 0), 255);
-      output[p++] = Math.min(
-        Math.max(1.1644 * (y1 - 16) - 0.3917 * (cb - 128) - 0.813 * (cr - 128) + 0.5, 0),
-        255
+      output[p++] = this._truncAndClamp(1.1644 * (y1 - 16) + 1.596 * (cr - 128) + 0.5, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(
+        1.1644 * (y1 - 16) - 0.3917 * (cb - 128) - 0.813 * (cr - 128) + 0.5,
+        0x00,
+        0xff
       );
-      output[p++] = Math.min(Math.max(1.1644 * (y1 - 16) + 2.0173 * (cb - 128) + 0.5, 0), 255);
+      output[p++] = this._truncAndClamp(1.1644 * (y1 - 16) + 2.0173 * (cb - 128) + 0.5, 0x00, 0xff);
 
       if (++col === width) {
         col = 0;
         continue;
       }
 
-      output[p++] = Math.min(Math.max(1.1644 * (y2 - 16) + 1.596 * (cr - 128) + 0.5, 0), 255);
-      output[p++] = Math.min(
-        Math.max(1.1644 * (y2 - 16) - 0.3917 * (cb - 128) - 0.813 * (cr - 128) + 0.5, 0),
-        255
+      output[p++] = this._truncAndClamp(1.1644 * (y2 - 16) + 1.596 * (cr - 128) + 0.5, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(
+        1.1644 * (y2 - 16) - 0.3917 * (cb - 128) - 0.813 * (cr - 128) + 0.5,
+        0x00,
+        0xff
       );
-      output[p++] = Math.min(Math.max(1.1644 * (y2 - 16) + 2.0173 * (cb - 128) + 0.5, 0), 255);
+      output[p++] = this._truncAndClamp(1.1644 * (y2 - 16) + 2.0173 * (cb - 128) + 0.5, 0x00, 0xff);
 
       if (++col == width) {
         col = 0;
@@ -1119,7 +1204,132 @@ class PixelConverter {
 
     return output;
   }
-  /* c8 ignore stop */
+
+  /**
+   * Converts CMYK photometric interpretation pixels to RGB.
+   * @method
+   * @static
+   * @param {Uint8Array} data - Array of CMYK photometric interpretation pixels.
+   * @param {number} width - Image width.
+   * @param {number} height - Image height.
+   * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
+   */
+  static cmykToRgb(data, width, height) {
+    const output = new Uint8Array(3 * width * height);
+    for (let n = 0, p = 0; n < data.length; ) {
+      let c = data[n++];
+      let m = data[n++];
+      let y = data[n++];
+      const k = data[n++];
+
+      c += k;
+      m += k;
+      y += k;
+
+      output[p++] = this._truncAndClamp(0xff - c, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(0xff - m, 0x00, 0xff);
+      output[p++] = this._truncAndClamp(0xff - y, 0x00, 0xff);
+    }
+
+    return output;
+  }
+
+  /**
+   * Converts ARGB photometric interpretation pixels to RGB.
+   * @method
+   * @static
+   * @param {Uint8Array} data - Array of ARGB photometric interpretation pixels.
+   * @param {number} width - Image width.
+   * @param {number} height - Image height.
+   * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
+   */
+  static argbToRgb(data, width, height) {
+    const output = new Uint8Array(3 * width * height);
+    for (let n = 0, p = 0; n < data.length; ) {
+      n++;
+      output[p++] = data[n++];
+      output[p++] = data[n++];
+      output[p++] = data[n++];
+    }
+
+    return output;
+  }
+
+  /**
+   * Converts HSV photometric interpretation pixels to RGB.
+   * @method
+   * @static
+   * @param {Uint8Array} data - Array of HSV photometric interpretation pixels.
+   * @returns {Uint8Array} Array of pixel data in RGB photometric interpretation.
+   */
+  static hsvToRgb(data) {
+    const output = new Uint8Array(data.length);
+    for (let n = 0; n < data.length; n += 3) {
+      const h = data[n];
+      const s = data[n + 1];
+      const v = data[n + 2];
+
+      let r = v;
+      let g = v;
+      let b = v;
+      if (s !== 0) {
+        const region = Math.trunc(h / 43);
+        const remainder = (h - region * 43) * 6;
+
+        const p = (v * (0xff - s)) >> 8;
+        const q = (v * (0xff - ((s * remainder) >> 8))) >> 8;
+        const t = (v * (0xff - ((s * (0xff - remainder)) >> 8))) >> 8;
+
+        if (region === 0) {
+          r = v;
+          g = t;
+          b = p;
+        } else if (region === 1) {
+          r = q;
+          g = v;
+          b = p;
+        } else if (region === 2) {
+          r = p;
+          g = v;
+          b = t;
+        } else if (region === 3) {
+          r = p;
+          g = q;
+          b = v;
+        } else if (region === 4) {
+          r = t;
+          g = p;
+          b = v;
+        } else {
+          r = v;
+          g = p;
+          b = q;
+        }
+      }
+
+      output[n] = this._truncAndClamp(r, 0x00, 0xff);
+      output[n + 1] = this._truncAndClamp(g, 0x00, 0xff);
+      output[n + 2] = this._truncAndClamp(b, 0x00, 0xff);
+    }
+
+    return output;
+  }
+
+  //#region Private Methods
+  /**
+   * Truncates and clamps value between min and max.
+   * @method
+   * @static
+   * @private
+   * @param {number} value - Original value.
+   * @param {number} min - Minimum value.
+   * @param {number} max - Maximum value.
+   * @returns {number} Clamped value.
+   */
+  static _truncAndClamp(value, min, max) {
+    return Math.min(Math.max(Math.trunc(value), min), max);
+  }
+  //#endregion
 }
 //#endregion
 
