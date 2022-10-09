@@ -488,7 +488,7 @@ class Pixel {
             framePixelBuffer[i] = framePixelBuffer[i + 1];
             framePixelBuffer[i + 1] = holder;
           }
-        } else if (this.getBitsAllocated() <= 32) {
+        } else if (this.getBitsAllocated() === 32) {
           for (let i = 0; i < framePixelBuffer.length; i += 4) {
             let holder = framePixelBuffer[i];
             framePixelBuffer[i] = framePixelBuffer[i + 1];

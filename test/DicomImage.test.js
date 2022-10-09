@@ -104,231 +104,255 @@ describe('DicomImage', () => {
   });
 
   it('should correctly render a single bit frame (MONOCHROME2)', () => {
-    const width = 4;
-    const height = 4;
-    // prettier-ignore
-    const pixels = Uint8Array.from([
-      0x00, 0x01, 0x00, 0x01,
-      0x01, 0x00, 0x01, 0x00,
-      0x00, 0x01, 0x00, 0x01,
-      0x01, 0x01, 0x01, 0x01,
-    ]);
-    // prettier-ignore
-    const expectedRenderedPixels = Uint8Array.from([
-      0x00, 0xff, 0x00, 0xff,
-      0xff, 0x00, 0xff, 0x00,
-      0x00, 0xff, 0x00, 0xff,
-      0xff, 0xff, 0xff, 0xff,
-    ]);
+    [
+      TransferSyntax.ImplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRBigEndian,
+    ].forEach((syntax) => {
+      const width = 4;
+      const height = 4;
+      // prettier-ignore
+      const pixels = Uint8Array.from([
+        0x00, 0x01, 0x00, 0x01,
+        0x01, 0x00, 0x01, 0x00,
+        0x00, 0x01, 0x00, 0x01,
+        0x01, 0x01, 0x01, 0x01,
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixels = Uint8Array.from([
+        0x00, 0xff, 0x00, 0xff,
+        0xff, 0x00, 0xff, 0x00,
+        0x00, 0xff, 0x00, 0xff,
+        0xff, 0xff, 0xff, 0xff,
+      ]);
 
-    const packedPixels = new Uint8Array((width * height) / 8);
-    for (let i = 0, l = width * height; i < l; i++) {
-      const value = pixels[i] === 0x01;
-      const byteIndex = Math.floor(i / 8);
-      const bitIndex = i - 8 * byteIndex;
-      const byteValue = packedPixels[byteIndex];
-      const maskValue = 0x01 << bitIndex;
-      packedPixels[byteIndex] = value ? byteValue | maskValue : byteValue & ~maskValue;
-    }
+      const packedPixels = new Uint8Array((width * height) / 8);
+      for (let i = 0, l = width * height; i < l; i++) {
+        const value = pixels[i] === 0x01;
+        const byteIndex = Math.floor(i / 8);
+        const bitIndex = i - 8 * byteIndex;
+        const byteValue = packedPixels[byteIndex];
+        const maskValue = 0x01 << bitIndex;
+        packedPixels[byteIndex] = value ? byteValue | maskValue : byteValue & ~maskValue;
+      }
 
-    const monoImage = createImageFromPixelData(
-      width,
-      height,
-      1,
-      1,
-      1,
-      PixelRepresentation.Unsigned,
-      PhotometricInterpretation.Monochrome2,
-      packedPixels.buffer,
-      TransferSyntax.ImplicitVRLittleEndian
-    );
-    const renderingResult = monoImage.render();
-    expect(renderingResult.histograms).to.be.undefined;
-    expect(renderingResult.windowLevel).not.to.be.undefined;
-    expect(renderingResult.windowLevel.getWindow()).to.be.eq(2);
-    expect(renderingResult.windowLevel.getLevel()).to.be.eq(1);
-    expect(renderingResult.frame).to.be.eq(0);
-    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+      const monoImage = createImageFromPixelData(
+        width,
+        height,
+        1,
+        1,
+        1,
+        PixelRepresentation.Unsigned,
+        PhotometricInterpretation.Monochrome2,
+        packedPixels.buffer,
+        syntax
+      );
+      const renderingResult = monoImage.render();
+      expect(renderingResult.histograms).to.be.undefined;
+      expect(renderingResult.windowLevel).not.to.be.undefined;
+      expect(renderingResult.windowLevel.getWindow()).to.be.eq(2);
+      expect(renderingResult.windowLevel.getLevel()).to.be.eq(1);
+      expect(renderingResult.frame).to.be.eq(0);
+      expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
-    const renderedPixels = new Uint8Array(renderingResult.pixels);
-    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
-      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 3]).to.be.eq(255);
-      p++;
-    }
+      const renderedPixels = new Uint8Array(renderingResult.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 3]).to.be.eq(255);
+        p++;
+      }
+    });
   });
 
   it('should correctly render an 8-bit grayscale frame (MONOCHROME1)', () => {
-    const width = 3;
-    const height = 3;
-    // prettier-ignore
-    const pixels = Uint8Array.from([
-      0x00, 0xff, 0x00,
-      0xff, 0x7f, 0xff,
-      0x00, 0xff, 0x00,
-    ]);
-    // prettier-ignore
-    const expectedRenderedPixels = Uint8Array.from([
-      0xff - 0x00, 0xff - 0xff, 0xff - 0x00,
-      0xff - 0xff, 0xff - 0x7f, 0xff - 0xff,
-      0xff - 0x00, 0xff - 0xff, 0xff - 0x00,
-    ]);
-    const monoImage = createImageFromPixelData(
-      width,
-      height,
-      8,
-      8,
-      1,
-      PixelRepresentation.Unsigned,
-      PhotometricInterpretation.Monochrome1,
-      pixels.buffer,
-      TransferSyntax.ImplicitVRLittleEndian
-    );
-    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
-    expect(renderingResult.histograms).to.be.undefined;
-    expect(renderingResult.windowLevel).not.to.be.undefined;
-    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
-    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
-    expect(renderingResult.frame).to.be.eq(0);
-    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+    [
+      TransferSyntax.ImplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRBigEndian,
+    ].forEach((syntax) => {
+      const width = 3;
+      const height = 3;
+      // prettier-ignore
+      const pixels = Uint8Array.from([
+        0x00, 0xff, 0x00,
+        0xff, 0x7f, 0xff,
+        0x00, 0xff, 0x00,
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixels = Uint8Array.from([
+        0xff - 0x00, 0xff - 0xff, 0xff - 0x00,
+        0xff - 0xff, 0xff - 0x7f, 0xff - 0xff,
+        0xff - 0x00, 0xff - 0xff, 0xff - 0x00,
+      ]);
+      const monoImage = createImageFromPixelData(
+        width,
+        height,
+        8,
+        8,
+        1,
+        PixelRepresentation.Unsigned,
+        PhotometricInterpretation.Monochrome1,
+        pixels.buffer,
+        syntax
+      );
+      const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+      expect(renderingResult.histograms).to.be.undefined;
+      expect(renderingResult.windowLevel).not.to.be.undefined;
+      expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+      expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+      expect(renderingResult.frame).to.be.eq(0);
+      expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
-    const renderedPixels = new Uint8Array(renderingResult.pixels);
-    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
-      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 3]).to.be.eq(255);
-      p++;
-    }
+      const renderedPixels = new Uint8Array(renderingResult.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 3]).to.be.eq(255);
+        p++;
+      }
+    });
   });
 
   it('should correctly render an 8-bit grayscale frame (MONOCHROME2)', () => {
-    const width = 3;
-    const height = 3;
-    // prettier-ignore
-    const pixels = Uint8Array.from([
-      0x00, 0x7f, 0x00,
-      0xff, 0x00, 0xff,
-      0x00, 0x7f, 0x00,
-    ]);
-    // prettier-ignore
-    const expectedRenderedPixels = Uint8Array.from([
-      0x00, 0x7f, 0x00,
-      0xff, 0x00, 0xff,
-      0x00, 0x7f, 0x00,
-    ]);
-    const monoImage = createImageFromPixelData(
-      width,
-      height,
-      8,
-      8,
-      1,
-      PixelRepresentation.Unsigned,
-      PhotometricInterpretation.Monochrome2,
-      pixels.buffer,
-      TransferSyntax.ImplicitVRLittleEndian
-    );
-    const renderingResult = monoImage.render({
-      windowLevel: new WindowLevel(255, 255 / 2),
-      colorPalette: StandardColorPalette.Grayscale,
-    });
-    expect(renderingResult.histograms).to.be.undefined;
-    expect(renderingResult.windowLevel).not.to.be.undefined;
-    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
-    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
-    expect(renderingResult.frame).to.be.eq(0);
-    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+    [
+      TransferSyntax.ImplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRBigEndian,
+    ].forEach((syntax) => {
+      const width = 3;
+      const height = 3;
+      // prettier-ignore
+      const pixels = Uint8Array.from([
+        0x00, 0x7f, 0x00,
+        0xff, 0x00, 0xff,
+        0x00, 0x7f, 0x00,
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixels = Uint8Array.from([
+        0x00, 0x7f, 0x00,
+        0xff, 0x00, 0xff,
+        0x00, 0x7f, 0x00,
+      ]);
+      const monoImage = createImageFromPixelData(
+        width,
+        height,
+        8,
+        8,
+        1,
+        PixelRepresentation.Unsigned,
+        PhotometricInterpretation.Monochrome2,
+        pixels.buffer,
+        syntax
+      );
+      const renderingResult = monoImage.render({
+        windowLevel: new WindowLevel(255, 255 / 2),
+        colorPalette: StandardColorPalette.Grayscale,
+      });
+      expect(renderingResult.histograms).to.be.undefined;
+      expect(renderingResult.windowLevel).not.to.be.undefined;
+      expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+      expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+      expect(renderingResult.frame).to.be.eq(0);
+      expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
 
-    const renderedPixels = new Uint8Array(renderingResult.pixels);
-    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
-      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
-      expect(renderedPixels[i + 3]).to.be.eq(255);
-      p++;
-    }
+      const renderedPixels = new Uint8Array(renderingResult.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 3]).to.be.eq(255);
+        p++;
+      }
+    });
   });
 
   it('should correctly render an 8-bit grayscale multiframe (MONOCHROME2)', () => {
-    const width = 3;
-    const height = 3;
-    // prettier-ignore
-    const pixels = Uint8Array.from([
-      // Frame 1
-      0x00, 0x7f, 0x00,
-      0xff, 0x00, 0xff,
-      0x00, 0x7f, 0x00,
-      // Frame 2
-      0xff, 0x00, 0xff,
-      0x00, 0x7f, 0x00,
-      0xff, 0x00, 0xff,
-    ]);
-    // prettier-ignore
-    const expectedRenderedPixelsFrame1 = Uint8Array.from([
-      0x00, 0x7f, 0x00,
-      0xff, 0x00, 0xff,
-      0x00, 0x7f, 0x00,
-    ]);
-    // prettier-ignore
-    const expectedRenderedPixelsFrame2 = Uint8Array.from([
-      0xff, 0x00, 0xff, 
-      0x00, 0x7f, 0x00, 
-      0xff, 0x00, 0xff,
-    ]);
-    const monoImage = createImageFromPixelData(
-      width,
-      height,
-      8,
-      8,
-      1,
-      PixelRepresentation.Unsigned,
-      PhotometricInterpretation.Monochrome2,
-      pixels.buffer,
-      TransferSyntax.ImplicitVRLittleEndian
-    );
-    monoImage.setElement('NumberOfFrames', 2);
+    [
+      TransferSyntax.ImplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRBigEndian,
+    ].forEach((syntax) => {
+      const width = 3;
+      const height = 3;
+      // prettier-ignore
+      const pixels = Uint8Array.from([
+        // Frame 1
+        0x00, 0x7f, 0x00,
+        0xff, 0x00, 0xff,
+        0x00, 0x7f, 0x00,
+        // Frame 2
+        0xff, 0x00, 0xff,
+        0x00, 0x7f, 0x00,
+        0xff, 0x00, 0xff,
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixelsFrame1 = Uint8Array.from([
+        0x00, 0x7f, 0x00,
+        0xff, 0x00, 0xff,
+        0x00, 0x7f, 0x00,
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixelsFrame2 = Uint8Array.from([
+        0xff, 0x00, 0xff, 
+        0x00, 0x7f, 0x00, 
+        0xff, 0x00, 0xff,
+      ]);
+      const monoImage = createImageFromPixelData(
+        width,
+        height,
+        8,
+        8,
+        1,
+        PixelRepresentation.Unsigned,
+        PhotometricInterpretation.Monochrome2,
+        pixels.buffer,
+        syntax
+      );
+      monoImage.setElement('NumberOfFrames', 2);
 
-    const renderingResult1 = monoImage.render({
-      frame: 0,
-      windowLevel: new WindowLevel(255, 255 / 2),
+      const renderingResult1 = monoImage.render({
+        frame: 0,
+        windowLevel: new WindowLevel(255, 255 / 2),
+      });
+      expect(renderingResult1.histograms).to.be.undefined;
+      expect(renderingResult1.windowLevel).not.to.be.undefined;
+      expect(renderingResult1.windowLevel.getWindow()).to.be.eq(255);
+      expect(renderingResult1.windowLevel.getLevel()).to.be.eq(255 / 2);
+      expect(renderingResult1.frame).to.be.eq(0);
+      expect(renderingResult1.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+
+      const renderedPixels1 = new Uint8Array(renderingResult1.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels1[i]).to.be.eq(expectedRenderedPixelsFrame1[p]);
+        expect(renderedPixels1[i + 1]).to.be.eq(expectedRenderedPixelsFrame1[p]);
+        expect(renderedPixels1[i + 2]).to.be.eq(expectedRenderedPixelsFrame1[p]);
+        expect(renderedPixels1[i + 3]).to.be.eq(255);
+        p++;
+      }
+
+      const renderingResult2 = monoImage.render({
+        frame: 1,
+        windowLevel: new WindowLevel(255, 255 / 2),
+      });
+      expect(renderingResult2.histograms).to.be.undefined;
+      expect(renderingResult2.windowLevel).not.to.be.undefined;
+      expect(renderingResult2.windowLevel.getWindow()).to.be.eq(255);
+      expect(renderingResult2.windowLevel.getLevel()).to.be.eq(255 / 2);
+      expect(renderingResult2.frame).to.be.eq(1);
+      expect(renderingResult2.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+
+      const renderedPixels2 = new Uint8Array(renderingResult2.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels2[i]).to.be.eq(expectedRenderedPixelsFrame2[p]);
+        expect(renderedPixels2[i + 1]).to.be.eq(expectedRenderedPixelsFrame2[p]);
+        expect(renderedPixels2[i + 2]).to.be.eq(expectedRenderedPixelsFrame2[p]);
+        expect(renderedPixels2[i + 3]).to.be.eq(255);
+        p++;
+      }
     });
-    expect(renderingResult1.histograms).to.be.undefined;
-    expect(renderingResult1.windowLevel).not.to.be.undefined;
-    expect(renderingResult1.windowLevel.getWindow()).to.be.eq(255);
-    expect(renderingResult1.windowLevel.getLevel()).to.be.eq(255 / 2);
-    expect(renderingResult1.frame).to.be.eq(0);
-    expect(renderingResult1.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
-
-    const renderedPixels1 = new Uint8Array(renderingResult1.pixels);
-    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
-      expect(renderedPixels1[i]).to.be.eq(expectedRenderedPixelsFrame1[p]);
-      expect(renderedPixels1[i + 1]).to.be.eq(expectedRenderedPixelsFrame1[p]);
-      expect(renderedPixels1[i + 2]).to.be.eq(expectedRenderedPixelsFrame1[p]);
-      expect(renderedPixels1[i + 3]).to.be.eq(255);
-      p++;
-    }
-
-    const renderingResult2 = monoImage.render({
-      frame: 1,
-      windowLevel: new WindowLevel(255, 255 / 2),
-    });
-    expect(renderingResult2.histograms).to.be.undefined;
-    expect(renderingResult2.windowLevel).not.to.be.undefined;
-    expect(renderingResult2.windowLevel.getWindow()).to.be.eq(255);
-    expect(renderingResult2.windowLevel.getLevel()).to.be.eq(255 / 2);
-    expect(renderingResult2.frame).to.be.eq(1);
-    expect(renderingResult2.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
-
-    const renderedPixels2 = new Uint8Array(renderingResult2.pixels);
-    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
-      expect(renderedPixels2[i]).to.be.eq(expectedRenderedPixelsFrame2[p]);
-      expect(renderedPixels2[i + 1]).to.be.eq(expectedRenderedPixelsFrame2[p]);
-      expect(renderedPixels2[i + 2]).to.be.eq(expectedRenderedPixelsFrame2[p]);
-      expect(renderedPixels2[i + 3]).to.be.eq(255);
-      p++;
-    }
   });
 
   it('should correctly render a little endian unsigned 16-bit grayscale frame (MONOCHROME2)', () => {
@@ -667,7 +691,54 @@ describe('DicomImage', () => {
     }
   });
 
-  it('should correctly render an RGB color frame', () => {
+  it('should correctly render an RGB color frame (Interleaved)', () => {
+    [
+      TransferSyntax.ImplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRLittleEndian,
+      TransferSyntax.ExplicitVRBigEndian,
+    ].forEach((syntax) => {
+      const width = 3;
+      const height = 3;
+      // prettier-ignore
+      const pixels = Uint8Array.from([
+          0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+          0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+          0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+        ]);
+      // prettier-ignore
+      const expectedRenderedPixels = Uint8Array.from([
+          0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+          0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
+          0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
+        ]);
+      const rgbImage = createImageFromPixelData(
+        width,
+        height,
+        8,
+        8,
+        3,
+        PixelRepresentation.Unsigned,
+        PhotometricInterpretation.Rgb,
+        pixels.buffer,
+        syntax
+      );
+      const renderingResult = rgbImage.render();
+      expect(renderingResult.histograms).to.be.undefined;
+      expect(renderingResult.windowLevel).to.be.undefined;
+      expect(renderingResult.frame).to.be.eq(0);
+      expect(renderingResult.colorPalette).to.be.undefined;
+
+      const renderedPixels = new Uint8Array(renderingResult.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
+        expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
+        expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p++]);
+        expect(renderedPixels[i + 3]).to.be.eq(255);
+      }
+    });
+  });
+
+  it('should correctly render an RGB color frame (Planar)', () => {
     const width = 3;
     const height = 3;
     // prettier-ignore
@@ -682,6 +753,12 @@ describe('DicomImage', () => {
       0xff, 0xff, 0xff,   0x7f, 0x7f, 0x7f,   0xff, 0xff, 0xff,
       0x00, 0x00, 0x00,   0xff, 0xff, 0xff,   0x00, 0x00, 0x00,
     ]);
+    const planarPixels = new Uint8Array(3 * width * height);
+    for (let n = 0; n < width * height; n++) {
+      planarPixels[n + width * height * 0] = pixels[n * 3 + 0];
+      planarPixels[n + width * height * 1] = pixels[n * 3 + 1];
+      planarPixels[n + width * height * 2] = pixels[n * 3 + 2];
+    }
     const rgbImage = createImageFromPixelData(
       width,
       height,
@@ -690,9 +767,11 @@ describe('DicomImage', () => {
       3,
       PixelRepresentation.Unsigned,
       PhotometricInterpretation.Rgb,
-      pixels.buffer,
+      planarPixels.buffer,
       TransferSyntax.ImplicitVRLittleEndian
     );
+    rgbImage.setElement('PlanarConfiguration', PlanarConfiguration.Planar);
+
     const renderingResult = rgbImage.render();
     expect(renderingResult.histograms).to.be.undefined;
     expect(renderingResult.windowLevel).to.be.undefined;

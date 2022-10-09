@@ -1,6 +1,6 @@
 {
   "name": "dcmjs-imaging",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "DICOM image and overlay rendering for Node.js and browser using dcmjs",
   "main": "build/dcmjs-imaging.min.js",
   "module": "build/dcmjs-imaging.min.js",
