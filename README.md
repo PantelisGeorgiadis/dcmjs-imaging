@@ -149,6 +149,7 @@ Please check a live example [here][dcmjs-imaging-live-example-url].
 
 ### Related libraries
 * [dcmjs-dimse][dcmjs-dimse-url] - DICOM DIMSE implementation for Node.js using dcmjs.
+* [dcmjs-ecg][dcmjs-ecg-url] - DICOM electrocardiography (ECG) rendering for Node.js and browser using dcmjs.
 
 ### License
 dcmjs-imaging is released under the MIT License.
@@ -166,6 +167,7 @@ dcmjs-imaging is released under the MIT License.
 [fo-dicom-url]: https://github.com/fo-dicom/fo-dicom
 [mdcm-url]: https://github.com/fo-dicom/mdcm
 [dcmjs-dimse-url]: https://github.com/PantelisGeorgiadis/dcmjs-dimse
+[dcmjs-ecg-url]: https://github.com/PantelisGeorgiadis/dcmjs-ecg
 
 [dcmjs-imaging-live-example-url]: https://unpkg.com/dcmjs-imaging@latest/build/index.html
 
