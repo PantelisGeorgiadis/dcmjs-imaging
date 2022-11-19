@@ -179,8 +179,9 @@
     }
 
     function renderFrame(opts) {
-      opts.canvasElement.width = opts.image.getWidth();
-      opts.canvasElement.height = opts.image.getHeight();
+      opts.infoTextElement.innerHTML = '';
+      opts.canvasElement.width = 0;
+      opts.canvasElement.height = 0;
 
       try {
         const t0 = performance.now();
@@ -190,6 +191,9 @@
         });
         const renderedPixels = new Uint8Array(renderingResult.pixels);
         const t1 = performance.now();
+
+        opts.canvasElement.width = opts.image.getWidth();
+        opts.canvasElement.height = opts.image.getHeight();
 
         if (opts.useWebGl) {
           const gl = opts.canvasElement.getContext('webgl');
@@ -265,7 +269,7 @@
           gl.drawArrays(gl.TRIANGLES, 0, 6);
         } else {
           const ctx = opts.canvasElement.getContext('2d');
-          tx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
+          ctx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
           const imageData = ctx.createImageData(opts.image.getWidth(), opts.image.getHeight());
           const canvasPixels = imageData.data;
           for (let i = 0; i < 4 * opts.image.getWidth() * opts.image.getHeight(); i++) {
@@ -276,7 +280,6 @@
 
         const t2 = performance.now();
 
-        opts.infoTextElement.innerHTML = '';
         console.log(`Rendering frame: ${opts.frame}`);
         if (renderingResult.windowLevel) {
           console.log(`Rendering window: ${renderingResult.windowLevel.toString()}`);
