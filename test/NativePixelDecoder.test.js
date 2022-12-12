@@ -99,7 +99,7 @@ describe('NativePixelDecoder', () => {
       rleData.buffer,
       TransferSyntax.RleLossless
     );
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
     const rleDecodedData = NativePixelDecoder.decodeRle(pixel, rleData);
     expect(rleDecodedData).to.deep.equal(expectedImageData);
 
@@ -109,6 +109,8 @@ describe('NativePixelDecoder', () => {
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -227,7 +229,7 @@ describe('NativePixelDecoder', () => {
       jpegBaselineCodestream.buffer,
       TransferSyntax.JpegBaselineProcess1
     );
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
     const jpegBaselineDecodedData = NativePixelDecoder.decodeJpeg(pixel, jpegBaselineCodestream);
     expect(jpegBaselineDecodedData).to.deep.equal(expectedImageData);
 
@@ -237,6 +239,8 @@ describe('NativePixelDecoder', () => {
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -311,7 +315,7 @@ describe('NativePixelDecoder', () => {
       jpegLsCodestream.buffer,
       TransferSyntax.JpegLsLossless
     );
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
     const jpegLsDecodedData = NativePixelDecoder.decodeJpegLs(pixel, jpegLsCodestream);
     expect(jpegLsDecodedData).to.deep.equal(expectedImageData);
 
@@ -321,6 +325,8 @@ describe('NativePixelDecoder', () => {
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
@@ -444,7 +450,7 @@ describe('NativePixelDecoder', () => {
       jpeg2000Codestream.buffer,
       TransferSyntax.Jpeg2000Lossless
     );
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
     const jpeg2000DecodedData = NativePixelDecoder.decodeJpeg2000(pixel, jpeg2000Codestream);
     expect(jpeg2000DecodedData).to.deep.equal(expectedImageData);
 
@@ -454,6 +460,8 @@ describe('NativePixelDecoder', () => {
     expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
     expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
     expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
 
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {

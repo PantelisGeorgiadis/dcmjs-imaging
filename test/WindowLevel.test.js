@@ -24,7 +24,7 @@ describe('WindowLevel', () => {
       WindowWidth: 100,
       WindowCenterWidthExplanation: 'DESCRIPTION',
     });
-    const windowLevel1 = WindowLevel.fromDicomImage(image1);
+    const windowLevel1 = WindowLevel.fromDicomImageElements(image1.getElements());
     expect(windowLevel1.length).to.be.eq(1);
     expect(windowLevel1[0].getLevel()).to.be.eq(200);
     expect(windowLevel1[0].getWindow()).to.be.eq(100);
@@ -35,7 +35,7 @@ describe('WindowLevel', () => {
       WindowWidth: [100, 200],
       WindowCenterWidthExplanation: ['DESCRIPTION1', 'DESCRIPTION2'],
     });
-    const windowLevel2 = WindowLevel.fromDicomImage(image2);
+    const windowLevel2 = WindowLevel.fromDicomImageElements(image2.getElements());
     expect(windowLevel2.length).to.be.eq(2);
     expect(windowLevel2[0].getLevel()).to.be.eq(200);
     expect(windowLevel2[0].getWindow()).to.be.eq(100);
@@ -48,7 +48,7 @@ describe('WindowLevel', () => {
       WindowCenter: 0.5,
       WindowWidth: 1.1,
     });
-    const windowLevel3 = WindowLevel.fromDicomImage(image3);
+    const windowLevel3 = WindowLevel.fromDicomImageElements(image3.getElements());
     expect(windowLevel3.length).to.be.eq(1);
     expect(windowLevel3[0].getLevel()).to.be.eq(0.5);
     expect(windowLevel3[0].getWindow()).to.be.eq(1.1);
@@ -59,7 +59,7 @@ describe('WindowLevel', () => {
       WindowCenter: 0.5,
       WindowWidth: 0.1,
     });
-    const windowLevel4 = WindowLevel.fromDicomImage(image4);
+    const windowLevel4 = WindowLevel.fromDicomImageElements(image4.getElements());
     expect(windowLevel4.length).to.be.eq(0);
 
     // Window width and center should have the same item count
@@ -67,7 +67,7 @@ describe('WindowLevel', () => {
       WindowCenter: [200, 300],
       WindowWidth: [100],
     });
-    const windowLevel5 = WindowLevel.fromDicomImage(image5);
+    const windowLevel5 = WindowLevel.fromDicomImageElements(image5.getElements());
     expect(windowLevel5.length).to.be.eq(0);
   });
 
@@ -76,7 +76,7 @@ describe('WindowLevel', () => {
       WindowCenter: 'WindowCenter',
       WindowWidth: 'WindowWidth',
     });
-    const windowLevel = WindowLevel.fromDicomImage(image);
+    const windowLevel = WindowLevel.fromDicomImageElements(image.getElements());
     expect(windowLevel.length).to.be.eq(0);
   });
 });

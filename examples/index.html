@@ -192,8 +192,8 @@
         const renderedPixels = new Uint8Array(renderingResult.pixels);
         const t1 = performance.now();
 
-        opts.canvasElement.width = opts.image.getWidth();
-        opts.canvasElement.height = opts.image.getHeight();
+        opts.canvasElement.width = renderingResult.width;
+        opts.canvasElement.height = renderingResult.height;
 
         if (opts.useWebGl) {
           const gl = opts.canvasElement.getContext('webgl');
@@ -253,8 +253,8 @@
             gl.TEXTURE_2D,
             0,
             gl.RGBA,
-            opts.image.getWidth(),
-            opts.image.getHeight(),
+            renderingResult.width,
+            renderingResult.height,
             0,
             gl.RGBA,
             gl.UNSIGNED_BYTE,
@@ -270,9 +270,9 @@
         } else {
           const ctx = opts.canvasElement.getContext('2d');
           ctx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
-          const imageData = ctx.createImageData(opts.image.getWidth(), opts.image.getHeight());
+          const imageData = ctx.createImageData(renderingResult.width, renderingResult.height);
           const canvasPixels = imageData.data;
-          for (let i = 0; i < 4 * opts.image.getWidth() * opts.image.getHeight(); i++) {
+          for (let i = 0; i < 4 * renderingResult.width * renderingResult.height; i++) {
             canvasPixels[i] = renderedPixels[i];
           }
           ctx.putImageData(imageData, 0, 0);

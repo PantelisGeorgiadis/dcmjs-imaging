@@ -257,7 +257,7 @@ describe('Lut', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
 
-    const pixel1 = new Pixel(image1);
+    const pixel1 = new Pixel(image1.getElements(), image1.getTransferSyntaxUid());
     const pipeline1 = LutPipeline.create(pixel1);
     expect(pipeline1).to.be.instanceof(GrayscaleLutPipeline);
 
@@ -275,7 +275,7 @@ describe('Lut', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const pixel2 = new Pixel(image2);
+    const pixel2 = new Pixel(image2.getElements(), image2.getTransferSyntaxUid());
     const pipeline2 = LutPipeline.create(pixel2);
     expect(pipeline2).to.be.instanceof(GrayscaleLutPipeline);
 
@@ -296,7 +296,7 @@ describe('Lut', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const pixel3 = new Pixel(image3);
+    const pixel3 = new Pixel(image3.getElements(), image3.getTransferSyntaxUid());
     const pipeline3 = LutPipeline.create(pixel3);
     expect(pipeline3).to.be.instanceof(RgbColorLutPipeline);
 
@@ -325,7 +325,7 @@ describe('Lut', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const pixel4 = new Pixel(image4);
+    const pixel4 = new Pixel(image4.getElements(), image4.getTransferSyntaxUid());
     const pipeline4 = LutPipeline.create(pixel4);
     expect(pipeline4).to.be.instanceof(PaletteColorLutPipeline);
   });

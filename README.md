@@ -76,6 +76,10 @@ const renderingResult = image.render();
 
 // Rendered pixels in an RGBA ArrayBuffer.
 const renderedPixels = renderingResult.pixels;
+// Rendered width.
+const width = renderingResult.width;
+// Rendered height.
+const height = renderingResult.height;
 ```
 
 #### Advanced image rendering
@@ -134,6 +138,10 @@ const renderingResult = image.render(renderingOpts);
 const renderedPixels = renderingResult.pixels;
 // Rendered frame index.
 const frame = renderingResult.frame;
+// Rendered width.
+const width = renderingResult.width;
+// Rendered height.
+const height = renderingResult.height;
 // Window/level used to render the pixels.
 // In case of color images, windowLevel should not be present.
 const windowLevel = renderingResult.windowLevel;

@@ -8,30 +8,35 @@ class Overlay {
   /**
    * Creates an instance of Overlay.
    * @constructor
-   * @param {DicomImage} image - DICOM image object.
+   * @param {Object} elements - DICOM image elements.
    * @param {number} group - Overlay group.
    */
-  constructor(image, group) {
+  constructor(elements, group) {
     this.group = group;
 
-    this.height = image.getElement(Tag.fromNumbers(group, 0x0010).toCleanString()) || 0;
-    this.width = image.getElement(Tag.fromNumbers(group, 0x0011).toCleanString()) || 0;
-    this.type = image.getElement(Tag.fromNumbers(group, 0x0040).toCleanString()) || 'Unknown';
+    this.height = this._getElement(elements, Tag.fromNumbers(group, 0x0010).toCleanString()) || 0;
+    this.width = this._getElement(elements, Tag.fromNumbers(group, 0x0011).toCleanString()) || 0;
+    this.type =
+      this._getElement(elements, Tag.fromNumbers(group, 0x0040).toCleanString()) || 'Unknown';
     this.originX = 0;
     this.originY = 0;
-    const origin = image.getElement(Tag.fromNumbers(group, 0x0050).toCleanString());
+    const origin = this._getElement(elements, Tag.fromNumbers(group, 0x0050).toCleanString());
     if (origin !== undefined && Array.isArray(origin) && origin.length === 2) {
       this.originX = origin[0];
       this.originY = origin[1];
     }
-    this.bitsAllocated = image.getElement(Tag.fromNumbers(group, 0x0100).toCleanString()) || 1;
-    this.bitPosition = image.getElement(Tag.fromNumbers(group, 0x0102).toCleanString()) || 0;
-    this.description = image.getElement(Tag.fromNumbers(group, 0x0022).toCleanString()) || '';
-    this.subtype = image.getElement(Tag.fromNumbers(group, 0x0045).toCleanString()) || '';
-    this.label = image.getElement(Tag.fromNumbers(group, 0x1500).toCleanString()) || '';
-    this.frames = image.getElement(Tag.fromNumbers(group, 0x0015).toCleanString()) || 1;
-    this.frameOrigin = image.getElement(Tag.fromNumbers(group, 0x0051).toCleanString()) || 1;
-    this.data = image.getElement(Tag.fromNumbers(group, 0x3000).toCleanString());
+    this.bitsAllocated =
+      this._getElement(elements, Tag.fromNumbers(group, 0x0100).toCleanString()) || 1;
+    this.bitPosition =
+      this._getElement(elements, Tag.fromNumbers(group, 0x0102).toCleanString()) || 0;
+    this.description =
+      this._getElement(elements, Tag.fromNumbers(group, 0x0022).toCleanString()) || '';
+    this.subtype = this._getElement(elements, Tag.fromNumbers(group, 0x0045).toCleanString()) || '';
+    this.label = this._getElement(elements, Tag.fromNumbers(group, 0x1500).toCleanString()) || '';
+    this.frames = this._getElement(elements, Tag.fromNumbers(group, 0x0015).toCleanString()) || 1;
+    this.frameOrigin =
+      this._getElement(elements, Tag.fromNumbers(group, 0x0051).toCleanString()) || 1;
+    this.data = this._getElement(elements, Tag.fromNumbers(group, 0x3000).toCleanString());
   }
 
   /**
@@ -214,26 +219,37 @@ class Overlay {
    * Creates an array of overlay objects based on the image elements.
    * @method
    * @static
-   * @param {DicomImage} image - DICOM image object.
+   * @param {Object} elements - DICOM image elements.
    * @returns {Array<Overlay>} Array of overlay objects.
    */
-  static fromDicomImage(image) {
+  static fromDicomImageElements(elements) {
     const ret = [];
-    const elements = image.getElements();
-
     const elementKeys = Object.keys(elements);
     for (let i = 0; i < elementKeys.length; i++) {
       const element = elementKeys[i];
       const tag = Tag.fromString(element);
       if (tag.element() === 0x0010) {
         if (tag.group() >= 0x6000 && tag.group() <= 0x60ff && tag.group() % 2 === 0) {
-          ret.push(new Overlay(image, tag.group()));
+          ret.push(new Overlay(elements, tag.group()));
         }
       }
     }
 
     return ret;
   }
+
+  //#region Private Methods
+  /**
+   * Gets element value.
+   * @method
+   * @param {Object} elements - Elements.
+   * @param {string} tag - Element tag.
+   * @returns {string|undefined} Element value or undefined if element doesn't exist.
+   */
+  _getElement(elements, tag) {
+    return elements[tag];
+  }
+  //#endregion
 }
 //#endregion
 

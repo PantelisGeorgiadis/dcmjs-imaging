@@ -12,38 +12,49 @@ class Pixel {
   /**
    * Creates an instance of Pixel.
    * @constructor
-   * @param {DicomImage} image - DICOM image object.
+   * @param {Object} elements - DICOM image elements.
+   * @param {string} transferSyntaxUid - Transfer Syntax UID.
    */
-  constructor(image) {
-    this.transferSyntaxUid = image.getTransferSyntaxUid();
-    this.frames = image.getNumberOfFrames();
-    this.width = image.getWidth();
-    this.height = image.getHeight();
-    this.bitsStored = image.getElement('BitsStored') || 0;
-    this.bitsAllocated = image.getElement('BitsAllocated') || 0;
-    this.highBit = image.getElement('HighBit') || this.bitsStored - 1;
-    this.samplesPerPixel = image.getElement('SamplesPerPixel') || 1;
+  constructor(elements, transferSyntaxUid) {
+    this.transferSyntaxUid = transferSyntaxUid;
+    this.frames = this._getElement(elements, 'NumberOfFrames') || 1;
+    this.width = this._getElement(elements, 'Columns');
+    this.height = this._getElement(elements, 'Rows');
+    this.bitsStored = this._getElement(elements, 'BitsStored') || 0;
+    this.bitsAllocated = this._getElement(elements, 'BitsAllocated') || 0;
+    this.highBit = this._getElement(elements, 'HighBit') || this.bitsStored - 1;
+    this.samplesPerPixel = this._getElement(elements, 'SamplesPerPixel') || 1;
     this.pixelRepresentation =
-      image.getElement('PixelRepresentation') || PixelRepresentation.Unsigned;
+      this._getElement(elements, 'PixelRepresentation') || PixelRepresentation.Unsigned;
     this.planarConfiguration =
-      image.getElement('PlanarConfiguration') || PlanarConfiguration.Interleaved;
-    const photometricInterpretation = image.getElement('PhotometricInterpretation');
+      this._getElement(elements, 'PlanarConfiguration') || PlanarConfiguration.Interleaved;
+    const photometricInterpretation = this._getElement(elements, 'PhotometricInterpretation');
     this.photometricInterpretation = photometricInterpretation
       ? photometricInterpretation.replace(/[^ -~]+/g, '').trim()
       : '';
-    this.rescaleSlope = image.getElement('RescaleSlope') || 1.0;
-    this.rescaleIntercept = image.getElement('RescaleIntercept') || 0.0;
-    this.voiLutFunction = image.getElement('VOILUTFunction') || 'LINEAR';
-    this.smallestImagePixelValue = image.getElement('SmallestImagePixelValue');
-    this.largestImagePixelValue = image.getElement('LargestImagePixelValue');
-    this.pixelPaddingValue = image.getElement('PixelPaddingValue');
-    this.redPaletteColorLookupTableDescriptor = image.getElement(
+    this.rescaleSlope = this._getElement(elements, 'RescaleSlope') || 1.0;
+    this.rescaleIntercept = this._getElement(elements, 'RescaleIntercept') || 0.0;
+    this.voiLutFunction = this._getElement(elements, 'VOILUTFunction') || 'LINEAR';
+    this.smallestImagePixelValue = this._getElement(elements, 'SmallestImagePixelValue');
+    this.largestImagePixelValue = this._getElement(elements, 'LargestImagePixelValue');
+    this.pixelPaddingValue = this._getElement(elements, 'PixelPaddingValue');
+    this.redPaletteColorLookupTableDescriptor = this._getElement(
+      elements,
       'RedPaletteColorLookupTableDescriptor'
     );
-    this.redPaletteColorLookupTableData = image.getElement('RedPaletteColorLookupTableData');
-    this.greenPaletteColorLookupTableData = image.getElement('GreenPaletteColorLookupTableData');
-    this.bluePaletteColorLookupTableData = image.getElement('BluePaletteColorLookupTableData');
-    this.pixelData = image.getElement('PixelData');
+    this.redPaletteColorLookupTableData = this._getElement(
+      elements,
+      'RedPaletteColorLookupTableData'
+    );
+    this.greenPaletteColorLookupTableData = this._getElement(
+      elements,
+      'GreenPaletteColorLookupTableData'
+    );
+    this.bluePaletteColorLookupTableData = this._getElement(
+      elements,
+      'BluePaletteColorLookupTableData'
+    );
+    this.pixelData = this._getElement(elements, 'PixelData');
   }
 
   /**
@@ -206,11 +217,12 @@ class Pixel {
     if (this.getBitsAllocated() === 1) {
       return Math.trunc((this.getWidth() * this.getHeight() - 1) / 8 + 1);
     }
-    if (this.getPhotometricInterpretation() == PhotometricInterpretation.YbrFull422) {
+    if (this.getPhotometricInterpretation() === PhotometricInterpretation.YbrFull422) {
       const syntax = this.getTransferSyntaxUid();
       if (
         syntax === TransferSyntax.ImplicitVRLittleEndian ||
         syntax === TransferSyntax.ExplicitVRLittleEndian ||
+        syntax === TransferSyntax.DeflatedExplicitVRLittleEndian ||
         syntax === TransferSyntax.ExplicitVRBigEndian
       ) {
         return this.getBytesAllocated() * 2 * this.getWidth() * this.getHeight();
@@ -573,6 +585,17 @@ class Pixel {
     }
 
     throw new Error('Multiple fragments per frame is not yet implemented');
+  }
+
+  /**
+   * Gets element value.
+   * @method
+   * @param {Object} elements - Elements.
+   * @param {string} tag - Element tag.
+   * @returns {string|undefined} Element value or undefined if element doesn't exist.
+   */
+  _getElement(elements, tag) {
+    return elements[tag];
   }
   //#endregion
 }

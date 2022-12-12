@@ -41,7 +41,7 @@ describe('ColorPalette', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const pixel = new Pixel(image);
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
     const colorPalette = ColorPalette.getColorPalettePaletteColor(pixel);
     for (let i = 0; i < 256; i++) {
       expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(255);
@@ -67,7 +67,7 @@ describe('ColorPalette', () => {
     );
 
     expect(() => {
-      const pixel = new Pixel(image);
+      const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
       ColorPalette.getColorPalettePaletteColor(pixel);
     }).to.throw();
   });

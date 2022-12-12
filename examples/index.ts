@@ -21,8 +21,8 @@ async function renderToBmp(dicomFile: string, bmpFile: string) {
   const renderedPixels = Buffer.from(renderingResult.pixels);
 
   // BMP lib expects ABGR and the rendering output is RGBA
-  const argbPixels = Buffer.alloc(4 * image.getWidth() * image.getHeight());
-  for (let i = 0; i < 4 * image.getWidth() * image.getHeight(); i += 4) {
+  const argbPixels = Buffer.alloc(4 * renderingResult.width * renderingResult.height);
+  for (let i = 0; i < 4 * renderingResult.width * renderingResult.height; i += 4) {
     argbPixels[i] = renderedPixels[i + 3];
     argbPixels[i + 1] = renderedPixels[i + 2];
     argbPixels[i + 2] = renderedPixels[i + 1];
@@ -31,8 +31,8 @@ async function renderToBmp(dicomFile: string, bmpFile: string) {
 
   const encodedBmp = bmp.encode({
     data: argbPixels,
-    width: image.getWidth(),
-    height: image.getHeight(),
+    width: renderingResult.width,
+    height: renderingResult.height,
   });
 
   fs.writeFileSync(bmpFile, encodedBmp.data);

@@ -99,7 +99,7 @@ describe('Pixel', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const pixel = new Pixel(image);
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
 
     expect(pixel.getTransferSyntaxUid()).to.be.eq(TransferSyntax.ImplicitVRLittleEndian);
     expect(pixel.getNumberOfFrames()).to.be.eq(numberOfFrames);
@@ -185,61 +185,58 @@ describe('Pixel', () => {
   });
 
   it('should correctly construct a PixelPipeline from Pixel', () => {
-    const pixel1 = new Pixel(
-      new DicomImage(
-        {
-          Rows: 5,
-          Columns: 5,
-          BitsStored: 8,
-          BitsAllocated: 8,
-          SamplesPerPixel: 1,
-          PhotometricInterpretation: PhotometricInterpretation.Monochrome1,
-          PixelData: [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer],
-        },
-        TransferSyntax.ImplicitVRLittleEndian
-      )
+    const image1 = new DicomImage(
+      {
+        Rows: 5,
+        Columns: 5,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome1,
+        PixelData: [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
     );
+    const pixel1 = new Pixel(image1.getElements(), image1.getTransferSyntaxUid());
     const pipeline1 = PixelPipeline.create(pixel1, 0);
     expect(pipeline1).to.be.instanceof(GrayscalePixelPipeline);
 
-    const pixel2 = new Pixel(
-      new DicomImage(
-        {
-          Rows: 5,
-          Columns: 5,
-          BitsStored: 12,
-          BitsAllocated: 16,
-          SamplesPerPixel: 1,
-          PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
-          PixelData: [
-            Uint16Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer,
-          ],
-        },
-        TransferSyntax.ImplicitVRLittleEndian
-      )
+    const image2 = new DicomImage(
+      {
+        Rows: 5,
+        Columns: 5,
+        BitsStored: 12,
+        BitsAllocated: 16,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [
+          Uint16Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer,
+        ],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
     );
+    const pixel2 = new Pixel(image2.getElements(), image2.getTransferSyntaxUid());
     const pipeline2 = PixelPipeline.create(pixel2, 0);
     expect(pipeline2).to.be.instanceof(GrayscalePixelPipeline);
 
-    const pixel3 = new Pixel(
-      new DicomImage(
-        {
-          Rows: 5,
-          Columns: 5,
-          BitsStored: 8,
-          BitsAllocated: 8,
-          SamplesPerPixel: 3,
-          PhotometricInterpretation: PhotometricInterpretation.Rgb,
-          PixelData: [
-            Uint8Array.from([
-              1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-              0,
-            ]).buffer,
-          ],
-        },
-        TransferSyntax.ImplicitVRLittleEndian
-      )
+    const image3 = new DicomImage(
+      {
+        Rows: 5,
+        Columns: 5,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 3,
+        PhotometricInterpretation: PhotometricInterpretation.Rgb,
+        PixelData: [
+          Uint8Array.from([
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+            0,
+          ]).buffer,
+        ],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
     );
+    const pixel3 = new Pixel(image3.getElements(), image3.getTransferSyntaxUid());
     const pipeline3 = PixelPipeline.create(pixel3, 0);
     expect(pipeline3).to.be.instanceof(ColorPixelPipeline);
   });

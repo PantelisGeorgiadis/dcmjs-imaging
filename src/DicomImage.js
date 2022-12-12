@@ -2,11 +2,17 @@ const {
   RenderableTransferSyntaxes,
   TransferSyntax,
   OverlayColor,
+  PhotometricInterpretation,
   StandardColorPalette,
 } = require('./Constants');
 const { PixelPipelineCache, LutPipelineCache } = require('./Cache');
-const { GrayscaleLutPipeline, RgbColorLutPipeline, PaletteColorLutPipeline } = require('./Lut');
-const { Pixel } = require('./Pixel');
+const {
+  LutPipeline,
+  GrayscaleLutPipeline,
+  RgbColorLutPipeline,
+  PaletteColorLutPipeline,
+} = require('./Lut');
+const { Pixel, PixelPipeline } = require('./Pixel');
 const WindowLevel = require('./WindowLevel');
 const Overlay = require('./Overlay');
 
@@ -137,6 +143,8 @@ class DicomImage {
   /**
    * @typedef {Object} RenderingResult
    * @property {number} frame - Rendered frame index.
+   * @property {number} width - Rendered width.
+   * @property {number} height - Rendered height.
    * @property {ArrayBuffer} pixels - Rendered pixels RGBA array buffer.
    * This format was chosen because it is suitable for rendering in a canvas object.
    * @property {WindowLevel} [windowLevel] - Window/level used to render the pixels.
@@ -160,6 +168,15 @@ class DicomImage {
     opts = opts || {};
 
     return this._render(opts);
+  }
+
+  /**
+   * Renders the icon image located within an icon image sequence, if exists.
+   * @method
+   * @returns {RenderingResult} Rendering result object.
+   */
+  renderIcon() {
+    return this._renderIcon();
   }
 
   /**
@@ -253,14 +270,14 @@ class DicomImage {
     // Window/level
     let wl = opts.windowLevel;
     if (wl === undefined) {
-      const windowLevels = WindowLevel.fromDicomImage(this);
+      const windowLevels = WindowLevel.fromDicomImageElements(this.getElements());
       if (windowLevels.length > 0) {
         wl = windowLevels[0];
       }
     }
 
     // Pixel object
-    const pixel = new Pixel(this);
+    const pixel = new Pixel(this.getElements(), this.getTransferSyntaxUid());
 
     // LUT pipeline
     const lutPipeline = this.lutPipelineCache.getOrCreate(pixel, wl, frame, colorPalette);
@@ -295,7 +312,7 @@ class DicomImage {
     // Overlays
     const renderOverlays = opts.renderOverlays !== undefined ? opts.renderOverlays : true;
     if (renderOverlays) {
-      const overlays = Overlay.fromDicomImage(this);
+      const overlays = Overlay.fromDicomImageElements(this.getElements());
       if (overlays.length > 0) {
         for (let i = 0; i < overlays.length; i++) {
           const overlay = overlays[i];
@@ -311,8 +328,8 @@ class DicomImage {
     }
 
     // Packed pixels to RGBA
-    const rgbaPixels = new Uint8Array(4 * this.getWidth() * this.getHeight());
-    for (let i = 0, p = 0; i < this.getWidth() * this.getHeight(); i++) {
+    const rgbaPixels = new Uint8Array(4 * pixel.getWidth() * pixel.getHeight());
+    for (let i = 0, p = 0; i < pixel.getWidth() * pixel.getHeight(); i++) {
       const pixel = renderedPixels[i];
       rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
       rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
@@ -322,12 +339,114 @@ class DicomImage {
 
     // Rendering result
     renderingResult.frame = frame;
+    renderingResult.width = pixel.getWidth();
+    renderingResult.height = pixel.getHeight();
     renderingResult.pixels = rgbaPixels.buffer;
     if (windowLevel) {
       renderingResult.windowLevel = windowLevel;
     }
     if (histograms) {
       renderingResult.histograms = histograms;
+    }
+    if (colorPalette !== undefined) {
+      renderingResult.colorPalette = colorPalette;
+    }
+
+    return renderingResult;
+  }
+
+  /**
+   * Rendering icon implementation.
+   * @method
+   * @private
+   * @returns {RenderingResult} Rendering result object.
+   * @throws Error if dataset does not contain an IconImageSequence,
+   * photometric interpretation is not valid and transfer syntax cannot be rendered.
+   */
+  _renderIcon() {
+    const iconImageSequence = this.getElement('IconImageSequence');
+    if (
+      iconImageSequence === undefined ||
+      !Array.isArray(iconImageSequence) ||
+      iconImageSequence.length === 0
+    ) {
+      throw new Error('Image does not contain IconImageSequence');
+    }
+
+    const iconImageSequenceItemElements = iconImageSequence.find((o) => o);
+    const photometricInterpretation = iconImageSequenceItemElements['PhotometricInterpretation'];
+    if (
+      photometricInterpretation !== PhotometricInterpretation.PaletteColor &&
+      photometricInterpretation !== PhotometricInterpretation.Monochrome1 &&
+      photometricInterpretation !== PhotometricInterpretation.Monochrome2
+    ) {
+      throw new Error(
+        `Photometric interpretation for IconImageSequence must be MONOCHROME 1, MONOCHROME 2 or PALETTE COLOR [photometric interpretation: ${photometricInterpretation}]`
+      );
+    }
+
+    let syntax = this.getTransferSyntaxUid();
+    if (
+      syntax !== TransferSyntax.ImplicitVRLittleEndian &&
+      syntax !== TransferSyntax.ExplicitVRLittleEndian &&
+      syntax !== TransferSyntax.DeflatedExplicitVRLittleEndian &&
+      syntax !== TransferSyntax.ExplicitVRBigEndian
+    ) {
+      const p = new Pixel(iconImageSequenceItemElements, syntax);
+      const pixelData = p.getPixelData();
+      let pixelBuffer = new Uint8Array(
+        Array.isArray(pixelData) ? pixelData.find((o) => o) : pixelData
+      );
+      const uncompressedFrameSize = p.getUncompressedFrameSize();
+      if (pixelBuffer.length === uncompressedFrameSize) {
+        // There's a good chance the icon data to be uncompressed
+        syntax = TransferSyntax.ExplicitVRLittleEndian;
+      }
+    }
+    if (!RenderableTransferSyntaxes.includes(syntax)) {
+      throw new Error(`Transfer syntax cannot be currently rendered [${syntax}]`);
+    }
+
+    // Returned objects
+    let windowLevel = undefined;
+    let colorPalette = undefined;
+    let renderingResult = {};
+
+    // Pixel object
+    const pixel = new Pixel(iconImageSequenceItemElements, syntax);
+
+    // LUT pipeline
+    const lutPipeline = LutPipeline.create(pixel, undefined, 0, undefined);
+    const lut = lutPipeline.getLut();
+    if (lut && !lut.isValid()) {
+      lut.recalculate();
+    }
+    if (lutPipeline instanceof GrayscaleLutPipeline) {
+      windowLevel = lutPipeline.getWindowLevel();
+      colorPalette = StandardColorPalette.Grayscale;
+    }
+
+    // Pixel pipeline
+    const pixelPipeline = PixelPipeline.create(pixel, 0);
+    let renderedPixels = pixelPipeline.render(lut);
+
+    // Packed pixels to RGBA
+    const rgbaPixels = new Uint8Array(4 * pixel.getWidth() * pixel.getHeight());
+    for (let i = 0, p = 0; i < pixel.getWidth() * pixel.getHeight(); i++) {
+      const pixel = renderedPixels[i];
+      rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
+      rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
+      rgbaPixels[p++] = pixel & 0xff;
+      rgbaPixels[p++] = 255;
+    }
+
+    // Rendering result
+    renderingResult.frame = 0;
+    renderingResult.width = pixel.getWidth();
+    renderingResult.height = pixel.getHeight();
+    renderingResult.pixels = rgbaPixels.buffer;
+    if (windowLevel) {
+      renderingResult.windowLevel = windowLevel;
     }
     if (colorPalette !== undefined) {
       renderingResult.colorPalette = colorPalette;

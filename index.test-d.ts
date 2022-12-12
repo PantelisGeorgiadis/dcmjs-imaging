@@ -32,7 +32,9 @@ expectType<number>(windowLevel.getLevel());
 expectType<string | undefined>(windowLevel.getDescription());
 expectType<string>(windowLevel.toString());
 expectType<WindowLevel[]>(
-  WindowLevel.fromDicomImage(new DicomImage({}, TransferSyntax.ImplicitVRLittleEndian))
+  WindowLevel.fromDicomImageElements(
+    new DicomImage({}, TransferSyntax.ImplicitVRLittleEndian).getElements()
+  )
 );
 
 // Histogram
@@ -78,8 +80,11 @@ expectType<number>(dicomImage.getNumberOfFrames());
 expectError(
   dicomImage.render({ frame: '1', windowLevel: 'WW/WL', renderOverlays: 1, calculateHistograms: 0 })
 );
+expectError(dicomImage.renderIcon({ frame: 1 }));
 expectType<{
   frame: number;
+  width: number;
+  height: number;
   pixels: ArrayBuffer;
   windowLevel?: WindowLevel;
   histograms?: Array<Histogram>;
@@ -92,4 +97,13 @@ expectType<{
     colorPalette: StandardColorPalette.HotIron,
   })
 );
+expectType<{
+  frame: number;
+  width: number;
+  height: number;
+  pixels: ArrayBuffer;
+  windowLevel?: WindowLevel;
+  histograms?: Array<Histogram>;
+  colorPalette?: number;
+}>(dicomImage.renderIcon());
 expectType<string>(dicomImage.toString());

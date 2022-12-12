@@ -4,6 +4,7 @@ const {
   TransferSyntax,
   PhotometricInterpretation,
   PixelRepresentation,
+  StandardColorPalette,
 } = require('./../src/Constants');
 
 const chai = require('chai');
@@ -30,7 +31,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlay = new Overlay(image, 0x6000);
+    const overlay = new Overlay(image.getElements(), 0x6000);
 
     expect(overlay.getGroup()).to.be.eq(0x6000);
     expect(overlay.getHeight()).to.be.eq(256);
@@ -79,7 +80,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlays = Overlay.fromDicomImage(image);
+    const overlays = Overlay.fromDicomImageElements(image.getElements());
     expect(overlays.length).to.be.eq(2);
 
     const image2 = new DicomImage(
@@ -89,7 +90,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlays2 = Overlay.fromDicomImage(image2);
+    const overlays2 = Overlay.fromDicomImageElements(image2.getElements());
     expect(overlays2.length).to.be.eq(0);
   });
 
@@ -100,7 +101,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlays = Overlay.fromDicomImage(image);
+    const overlays = Overlay.fromDicomImageElements(image.getElements());
     expect(overlays.length).to.be.eq(1);
     const firstOverlay = overlays[0];
     expect(() => {
@@ -114,7 +115,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlays2 = Overlay.fromDicomImage(image2);
+    const overlays2 = Overlay.fromDicomImageElements(image2.getElements());
     expect(overlays2.length).to.be.eq(1);
     const firstOverlay2 = overlays2[0];
     expect(() => {
@@ -178,6 +179,13 @@ describe('Overlay', () => {
     );
 
     const renderingResult = image.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+
     const renderedPixels = new Uint8Array(renderingResult.pixels);
     for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
       expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);

@@ -39,7 +39,7 @@ describe('Cache', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     monoImage.setElement('NumberOfFrames', 2);
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
 
     const pixelPipelineCache = new PixelPipelineCache(1);
     const pixelPipeline1 = pixelPipelineCache.getOrCreate(pixel, 0);
@@ -80,7 +80,7 @@ describe('Cache', () => {
       TransferSyntax.ImplicitVRLittleEndian
     );
     monoImage.setElement('NumberOfFrames', 2);
-    const pixel = new Pixel(monoImage);
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
 
     const wl1 = new WindowLevel(20, 30);
     const wl2 = new WindowLevel(30, 40);

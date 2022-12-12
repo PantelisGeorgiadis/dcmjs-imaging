@@ -77,18 +77,18 @@ class WindowLevel {
   }
 
   /**
-   * Creates an array of window/level objects based on the image parameters.
+   * Creates an array of window/level objects based on the image elements.
    * @method
    * @static
-   * @param {DicomImage} image - DICOM image object.
+   * @param {Object} elements - DICOM image elements.
    * @returns {Array<WindowLevel>} Array of window/level objects.
    */
-  static fromDicomImage(image) {
+  static fromDicomImageElements(elements) {
     const ret = [];
 
-    let windowCenters = image.getElement('WindowCenter');
-    let windowWidths = image.getElement('WindowWidth');
-    let descriptions = image.getElement('WindowCenterWidthExplanation');
+    let windowCenters = this._getElement(elements, 'WindowCenter');
+    let windowWidths = this._getElement(elements, 'WindowWidth');
+    let descriptions = this._getElement(elements, 'WindowCenterWidthExplanation');
 
     if (windowCenters === undefined || windowWidths === undefined) {
       return ret;
@@ -120,6 +120,20 @@ class WindowLevel {
 
     return ret;
   }
+
+  //#region Private Methods
+  /**
+   * Gets element value.
+   * @method
+   * @static
+   * @param {Object} elements - Elements.
+   * @param {string} tag - Element tag.
+   * @returns {string|undefined} Element value or undefined if element doesn't exist.
+   */
+  static _getElement(elements, tag) {
+    return elements[tag];
+  }
+  //#endregion
 }
 //#endregion
 

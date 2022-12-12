@@ -103,9 +103,9 @@ declare class WindowLevel {
   setDescription(description: string): void;
 
   /**
-   * Creates an array of window/level objects based on the image parameters.
+   * Creates an array of window/level objects based on the image elements.
    */
-  static fromDicomImage(image: DicomImage): Array<WindowLevel>;
+  static fromDicomImageElements(elements: Record<string, unknown>): Array<WindowLevel>;
 
   /**
    * Gets the window/level description.
@@ -192,6 +192,21 @@ declare class DicomImage {
     colorPalette?: number;
   }): {
     frame: number;
+    width: number;
+    height: number;
+    pixels: ArrayBuffer;
+    windowLevel?: WindowLevel;
+    histograms?: Array<Histogram>;
+    colorPalette?: number;
+  };
+
+  /**
+   * Renders the icon image located within an icon image sequence, if exists.
+   */
+  renderIcon(): {
+    frame: number;
+    width: number;
+    height: number;
     pixels: ArrayBuffer;
     windowLevel?: WindowLevel;
     histograms?: Array<Histogram>;
