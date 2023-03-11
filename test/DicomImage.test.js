@@ -713,6 +713,64 @@ describe('DicomImage', () => {
     }
   });
 
+  it('should correctly render a little and big endian float 32-bit grayscale frame (MONOCHROME2)', () => {
+    function floatToUint8Array(f, littleEndian) {
+      const fArray = new Float32Array(1);
+      fArray[0] = f;
+
+      return littleEndian === true
+        ? new Uint8Array(fArray.buffer)
+        : new Uint8Array(fArray.buffer).reverse();
+    }
+
+    [true, false].forEach((littleEndian) => {
+      const width = 3;
+      const height = 3;
+      // prettier-ignore
+      const pixels = new Uint8Array([ 
+        ...floatToUint8Array(   0.0, littleEndian), ...floatToUint8Array(1024.0, littleEndian), ...floatToUint8Array(   0.0, littleEndian),
+        ...floatToUint8Array(1024.0, littleEndian), ...floatToUint8Array(   0.0, littleEndian), ...floatToUint8Array(1024.0, littleEndian),
+        ...floatToUint8Array(   0.0, littleEndian), ...floatToUint8Array(1024.0, littleEndian), ...floatToUint8Array(   0.0, littleEndian)
+      ]);
+      // prettier-ignore
+      const expectedRenderedPixels = Uint8Array.from([
+        0x00, 0xff, 0x00,
+        0xff, 0x00, 0xff,
+        0x00, 0xff, 0x00,
+      ]);
+      const monoImage = new DicomImage(
+        {
+          Rows: height,
+          Columns: width,
+          BitsAllocated: 32,
+          SamplesPerPixel: 1,
+          PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+          FloatPixelData: [pixels],
+        },
+        littleEndian === true
+          ? TransferSyntax.ExplicitVRLittleEndian
+          : TransferSyntax.ExplicitVRBigEndian
+      );
+
+      const renderingResult = monoImage.render();
+      expect(renderingResult.histograms).to.be.undefined;
+      expect(renderingResult.windowLevel).not.to.be.undefined;
+      expect(renderingResult.frame).to.be.eq(0);
+      expect(renderingResult.width).to.be.eq(width);
+      expect(renderingResult.height).to.be.eq(height);
+      expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+
+      const renderedPixels = new Uint8Array(renderingResult.pixels);
+      for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+        expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p]);
+        expect(renderedPixels[i + 3]).to.be.eq(255);
+        p++;
+      }
+    });
+  });
+
   it('should correctly render an RGB color frame (Interleaved)', () => {
     [
       TransferSyntax.ImplicitVRLittleEndian,

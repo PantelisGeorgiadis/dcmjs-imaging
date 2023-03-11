@@ -20,8 +20,8 @@ class Pixel {
     this.frames = this._getElement(elements, 'NumberOfFrames') || 1;
     this.width = this._getElement(elements, 'Columns');
     this.height = this._getElement(elements, 'Rows');
-    this.bitsStored = this._getElement(elements, 'BitsStored') || 0;
     this.bitsAllocated = this._getElement(elements, 'BitsAllocated') || 0;
+    this.bitsStored = this._getElement(elements, 'BitsStored') || this.bitsAllocated;
     this.highBit = this._getElement(elements, 'HighBit') || this.bitsStored - 1;
     this.samplesPerPixel = this._getElement(elements, 'SamplesPerPixel') || 1;
     this.pixelRepresentation =
@@ -38,6 +38,7 @@ class Pixel {
     this.smallestImagePixelValue = this._getElement(elements, 'SmallestImagePixelValue');
     this.largestImagePixelValue = this._getElement(elements, 'LargestImagePixelValue');
     this.pixelPaddingValue = this._getElement(elements, 'PixelPaddingValue');
+    this.floatPixelPaddingValue = this._getElement(elements, 'FloatPixelPaddingValue');
     this.redPaletteColorLookupTableDescriptor = this._getElement(
       elements,
       'RedPaletteColorLookupTableDescriptor'
@@ -55,6 +56,7 @@ class Pixel {
       'BluePaletteColorLookupTableData'
     );
     this.pixelData = this._getElement(elements, 'PixelData');
+    this.floatPixelData = this._getElement(elements, 'FloatPixelData');
   }
 
   /**
@@ -285,7 +287,7 @@ class Pixel {
    * @returns {number} Pixel padding value.
    */
   getPixelPaddingValue() {
-    return this.pixelPaddingValue;
+    return this.pixelPaddingValue || this.floatPixelPaddingValue;
   }
 
   /**
@@ -330,7 +332,16 @@ class Pixel {
    * @returns {Array<ArrayBuffer>} Pixel data.
    */
   getPixelData() {
-    return this.pixelData;
+    return this.pixelData || this.floatPixelData;
+  }
+
+  /**
+   * Checks whether the float pixel data exist.
+   * @method
+   * @returns {boolean} Whether the float pixel data exist.
+   */
+  hasFloatPixelData() {
+    return this.floatPixelData !== undefined;
   }
 
   /**
@@ -408,6 +419,22 @@ class Pixel {
     const s32 = new Int32Array(u32);
 
     return s32;
+  }
+
+  /**
+   * Gets the pixel data as an array of float values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @returns {Float32Array} Pixel data as an array of float values.
+   */
+  getFrameDataF32(frame) {
+    const frameBuffer = this._getFrameBuffer(frame);
+
+    return new Float32Array(
+      frameBuffer.buffer,
+      frameBuffer.byteOffset,
+      frameBuffer.byteLength / Float32Array.BYTES_PER_ELEMENT
+    );
   }
 
   /**
@@ -501,13 +528,24 @@ class Pixel {
             framePixelBuffer[i + 1] = holder;
           }
         } else if (this.getBitsAllocated() === 32) {
-          for (let i = 0; i < framePixelBuffer.length; i += 4) {
-            let holder = framePixelBuffer[i];
-            framePixelBuffer[i] = framePixelBuffer[i + 1];
-            framePixelBuffer[i + 1] = holder;
-            holder = framePixelBuffer[i + 2];
-            framePixelBuffer[i + 2] = framePixelBuffer[i + 3];
-            framePixelBuffer[i + 3] = holder;
+          if (this.hasFloatPixelData()) {
+            for (let i = 0; i < framePixelBuffer.length; i += 4) {
+              let holder = framePixelBuffer[i];
+              framePixelBuffer[i] = framePixelBuffer[i + 3];
+              framePixelBuffer[i + 3] = holder;
+              holder = framePixelBuffer[i + 1];
+              framePixelBuffer[i + 1] = framePixelBuffer[i + 2];
+              framePixelBuffer[i + 2] = holder;
+            }
+          } else {
+            for (let i = 0; i < framePixelBuffer.length; i += 4) {
+              let holder = framePixelBuffer[i];
+              framePixelBuffer[i] = framePixelBuffer[i + 1];
+              framePixelBuffer[i + 1] = holder;
+              holder = framePixelBuffer[i + 2];
+              framePixelBuffer[i + 2] = framePixelBuffer[i + 3];
+              framePixelBuffer[i + 3] = holder;
+            }
           }
         }
       }
@@ -725,7 +763,11 @@ class PixelPipeline {
           pixel.getHeight(),
           pixel.getMinimumPixelValue(),
           pixel.getMaximumPixelValue(),
-          pixel.isSigned() ? pixel.getFrameDataS32(frame) : pixel.getFrameDataU32(frame)
+          pixel.hasFloatPixelData()
+            ? pixel.getFrameDataF32(frame)
+            : pixel.isSigned()
+            ? pixel.getFrameDataS32(frame)
+            : pixel.getFrameDataU32(frame)
         );
       } else {
         throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);

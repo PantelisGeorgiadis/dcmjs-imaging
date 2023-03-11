@@ -31,7 +31,7 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 ### Features
 - Renders single and multi-frame datasets with optional adjustment of window/level and color palette.
 - Decodes all major transfer syntaxes using a native WebAssembly module.
-- Handles color and grayscale datasets, from 1 to 32 bits allocated, with signed and unsigned pixel values.
+- Handles color and grayscale datasets, from 1 to 32 bits allocated, with signed, unsigned and float pixel values.
 - Outputs RGBA pixel arrays, suitable for use with HTML5 Canvas and WebGL, or other imaging libraries.
 - Provides a common bundle for both Node.js and browser.
 

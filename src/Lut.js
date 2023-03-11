@@ -903,7 +903,11 @@ class LutPipeline {
     } else if (pixel.getBitsStored() <= 16) {
       frameData = pixel.isSigned() ? pixel.getFrameDataS16(frame) : pixel.getFrameDataU16(frame);
     } else if (pixel.getBitsStored() <= 32) {
-      frameData = pixel.isSigned() ? pixel.getFrameDataS32(frame) : pixel.getFrameDataU32(frame);
+      frameData = pixel.hasFloatPixelData()
+        ? pixel.getFrameDataF32(frame)
+        : pixel.isSigned()
+        ? pixel.getFrameDataS32(frame)
+        : pixel.getFrameDataU32(frame);
     } else {
       throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
     }
