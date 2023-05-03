@@ -1,7 +1,7 @@
 const {
   PhotometricInterpretation,
-  PlanarConfiguration,
   PixelRepresentation,
+  PlanarConfiguration,
   TransferSyntax,
 } = require('./Constants');
 const Histogram = require('./Histogram');
@@ -1400,11 +1400,11 @@ class PixelConverter {
 
 //#region Exports
 module.exports = {
-  Pixel,
-  PixelPipeline,
-  GrayscalePixelPipeline,
-  SingleBitPixelPipeline,
   ColorPixelPipeline,
+  GrayscalePixelPipeline,
+  Pixel,
   PixelConverter,
+  PixelPipeline,
+  SingleBitPixelPipeline,
 };
 //#endregion

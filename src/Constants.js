@@ -118,12 +118,12 @@ Object.freeze(OverlayColor);
 
 //#region Exports
 module.exports = {
-  TransferSyntax,
-  RenderableTransferSyntaxes,
-  PhotometricInterpretation,
-  PlanarConfiguration,
-  PixelRepresentation,
-  StandardColorPalette,
   OverlayColor,
+  PhotometricInterpretation,
+  PixelRepresentation,
+  PlanarConfiguration,
+  RenderableTransferSyntaxes,
+  StandardColorPalette,
+  TransferSyntax,
 };
 //#endregion

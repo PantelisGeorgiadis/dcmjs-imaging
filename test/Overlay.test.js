@@ -1,17 +1,30 @@
-const Overlay = require('./../src/Overlay');
-const DicomImage = require('./../src/DicomImage');
+const { G60xxOverlay, Overlay } = require('./../src/Overlay');
 const {
-  TransferSyntax,
   PhotometricInterpretation,
   PixelRepresentation,
   StandardColorPalette,
+  TransferSyntax,
 } = require('./../src/Constants');
+const DicomImage = require('./../src/DicomImage');
 
 const chai = require('chai');
 const expect = chai.expect;
 
 describe('Overlay', () => {
-  it('should correctly construct an Overlay from DicomImage', () => {
+  it('should throw in case Overlay methods are not implemented', () => {
+    class SubclassedOverlay extends Overlay {
+      constructor() {
+        super();
+      }
+    }
+    const subclassedOverlay = new SubclassedOverlay();
+
+    expect(() => {
+      subclassedOverlay.render();
+    }).to.throw();
+  });
+
+  it('should correctly construct a G60xxOverlay from DicomImage', () => {
     const overlayData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
     const image = new DicomImage(
       {
@@ -31,7 +44,7 @@ describe('Overlay', () => {
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
-    const overlay = new Overlay(image.getElements(), 0x6000);
+    const overlay = new G60xxOverlay(image.getElements(), 0x6000);
 
     expect(overlay.getGroup()).to.be.eq(0x6000);
     expect(overlay.getHeight()).to.be.eq(256);
@@ -49,7 +62,7 @@ describe('Overlay', () => {
     expect(new Uint8Array(overlay.getData()[0])).to.deep.equal(new Uint8Array(overlayData[0]));
   });
 
-  it('should correctly discover overlays in DicomImage', () => {
+  it('should correctly discover G60xx overlays in DicomImage', () => {
     const overlayData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
     const image = new DicomImage(
       {
@@ -94,7 +107,7 @@ describe('Overlay', () => {
     expect(overlays2.length).to.be.eq(0);
   });
 
-  it('should not throw for missing overlay parameters', () => {
+  it('should not throw for missing G60xx overlay parameters', () => {
     const image = new DicomImage(
       {
         '60F00010': 256,
@@ -123,7 +136,7 @@ describe('Overlay', () => {
     }).to.not.throw();
   });
 
-  it('should correctly render an overlay', () => {
+  it('should correctly render a G60xx overlay', () => {
     const width = 4;
     const height = 4;
     // prettier-ignore

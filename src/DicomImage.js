@@ -1,20 +1,20 @@
 const {
-  RenderableTransferSyntaxes,
-  TransferSyntax,
   OverlayColor,
   PhotometricInterpretation,
+  RenderableTransferSyntaxes,
   StandardColorPalette,
+  TransferSyntax,
 } = require('./Constants');
-const { PixelPipelineCache, LutPipelineCache } = require('./Cache');
+const { LutPipelineCache, PixelPipelineCache } = require('./Cache');
 const {
-  LutPipeline,
   GrayscaleLutPipeline,
-  RgbColorLutPipeline,
+  LutPipeline,
   PaletteColorLutPipeline,
+  RgbColorLutPipeline,
 } = require('./Lut');
 const { Pixel, PixelPipeline } = require('./Pixel');
+const { G60xxOverlay, Overlay } = require('./Overlay');
 const WindowLevel = require('./WindowLevel');
-const Overlay = require('./Overlay');
 
 const dcmjs = require('dcmjs');
 const { DicomMetaDictionary, DicomMessage, ReadBufferStream, WriteBufferStream } = dcmjs.data;
@@ -316,13 +316,15 @@ class DicomImage {
       if (overlays.length > 0) {
         for (let i = 0; i < overlays.length; i++) {
           const overlay = overlays[i];
-          if (
-            frame + 1 < overlay.getFrameOrigin() ||
-            frame + 1 > overlay.getFrameOrigin() + overlay.getNumberOfFrames() - 1
-          ) {
-            continue;
+          if (overlay instanceof G60xxOverlay) {
+            if (
+              frame + 1 < overlay.getFrameOrigin() ||
+              frame + 1 > overlay.getFrameOrigin() + overlay.getNumberOfFrames() - 1
+            ) {
+              continue;
+            }
+            overlay.render(renderedPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
           }
-          overlay.render(renderedPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
         }
       }
     }

@@ -1,7 +1,7 @@
-const ColorPalette = require('./../src/ColorPalette');
-const DicomImage = require('./../src/DicomImage');
 const { Pixel } = require('./../src/Pixel');
 const { TransferSyntax } = require('./../src/Constants');
+const ColorPalette = require('./../src/ColorPalette');
+const DicomImage = require('./../src/DicomImage');
 
 const chai = require('chai');
 const expect = chai.expect;

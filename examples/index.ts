@@ -9,7 +9,7 @@ async function renderToBmp(dicomFile: string, bmpFile: string) {
   // Optionally, provide the path to WebAssembly module.
   // If not provided, the module is trying to be resolved within the same directory.
   await NativePixelDecoder.initializeAsync({
-    webAssemblyModulePathOrUrl: path.resolve(__dirname, '../wasm/bin/native-pixel-decoder.wasm'),
+    webAssemblyModulePathOrUrl: path.resolve(__dirname, './../wasm/bin/native-pixel-decoder.wasm'),
   });
 
   const fileBuffer = fs.readFileSync(dicomFile);

@@ -1,11 +1,11 @@
-const { PixelPipelineCache, LutPipelineCache } = require('./../src/Cache');
+const { LutPipelineCache, PixelPipelineCache } = require('./../src/Cache');
 const { Pixel } = require('./../src/Pixel');
 const {
-  TransferSyntax,
   PhotometricInterpretation,
   PixelRepresentation,
+  TransferSyntax,
 } = require('./../src/Constants');
-const WindowLevel = require('../src/WindowLevel');
+const WindowLevel = require('./../src/WindowLevel');
 
 const { createImageFromPixelData } = require('./utils');
 

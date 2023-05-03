@@ -1,5 +1,5 @@
-const { PixelPipeline } = require('./Pixel');
 const { LutPipeline } = require('./Lut');
+const { PixelPipeline } = require('./Pixel');
 
 //#region LruCache
 class LruCache {
@@ -132,5 +132,5 @@ class LutPipelineCache extends LruCache {
 //#endregion
 
 //#region Exports
-module.exports = { PixelPipelineCache, LutPipelineCache };
+module.exports = { LutPipelineCache, PixelPipelineCache };
 //#endregion

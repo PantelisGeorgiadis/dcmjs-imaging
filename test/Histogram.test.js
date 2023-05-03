@@ -1,10 +1,10 @@
-const Histogram = require('./../src/Histogram');
 const {
-  TransferSyntax,
   PhotometricInterpretation,
   PixelRepresentation,
+  TransferSyntax,
 } = require('./../src/Constants');
-const WindowLevel = require('../src/WindowLevel');
+const Histogram = require('./../src/Histogram');
+const WindowLevel = require('./../src/WindowLevel');
 
 const chai = require('chai');
 const expect = chai.expect;

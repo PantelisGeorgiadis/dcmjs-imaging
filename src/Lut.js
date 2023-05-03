@@ -1,6 +1,6 @@
+const { PhotometricInterpretation, StandardColorPalette } = require('./Constants');
 const ColorPalette = require('./ColorPalette');
 const WindowLevel = require('./WindowLevel');
-const { PhotometricInterpretation, StandardColorPalette } = require('./Constants');
 
 //#region Lut
 class Lut {
@@ -1137,18 +1137,18 @@ class PaletteColorLutPipeline extends LutPipeline {
 
 //#region Exports
 module.exports = {
+  CachedLut,
+  CompositeLut,
+  GrayscaleLutPipeline,
+  InvertLut,
   Lut,
   LutPipeline,
-  RescaleLut,
-  VoiLut,
-  InvertLut,
-  PaletteColorLut,
   OutputLut,
-  CompositeLut,
-  PreCalculatedLut,
-  CachedLut,
-  GrayscaleLutPipeline,
-  RgbColorLutPipeline,
+  PaletteColorLut,
   PaletteColorLutPipeline,
+  PreCalculatedLut,
+  RescaleLut,
+  RgbColorLutPipeline,
+  VoiLut,
 };
 //#endregion

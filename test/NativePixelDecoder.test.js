@@ -1,11 +1,11 @@
-const NativePixelDecoder = require('./../src/NativePixelDecoder');
 const { Pixel } = require('./../src/Pixel');
 const {
-  TransferSyntax,
   PhotometricInterpretation,
   PixelRepresentation,
+  TransferSyntax,
 } = require('./../src/Constants');
-const WindowLevel = require('../src/WindowLevel');
+const NativePixelDecoder = require('./../src/NativePixelDecoder');
+const WindowLevel = require('./../src/WindowLevel');
 
 const { createImageFromPixelData } = require('./utils');
 

@@ -86,9 +86,9 @@ class WindowLevel {
   static fromDicomImageElements(elements) {
     const ret = [];
 
-    let windowCenters = this._getElement(elements, 'WindowCenter');
-    let windowWidths = this._getElement(elements, 'WindowWidth');
-    let descriptions = this._getElement(elements, 'WindowCenterWidthExplanation');
+    let windowCenters = elements['WindowCenter'];
+    let windowWidths = elements['WindowWidth'];
+    let descriptions = elements['WindowCenterWidthExplanation'];
 
     if (windowCenters === undefined || windowWidths === undefined) {
       return ret;
@@ -120,20 +120,6 @@ class WindowLevel {
 
     return ret;
   }
-
-  //#region Private Methods
-  /**
-   * Gets element value.
-   * @method
-   * @static
-   * @param {Object} elements - Elements.
-   * @param {string} tag - Element tag.
-   * @returns {string|undefined} Element value or undefined if element doesn't exist.
-   */
-  static _getElement(elements, tag) {
-    return elements[tag];
-  }
-  //#endregion
 }
 //#endregion
 

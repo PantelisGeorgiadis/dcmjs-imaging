@@ -1,22 +1,22 @@
-const DicomImage = require('./../src/DicomImage');
-const WindowLevel = require('./../src/WindowLevel');
 const {
-  LutPipeline,
-  GrayscaleLutPipeline,
-  RgbColorLutPipeline,
-  PaletteColorLutPipeline,
-  Lut,
-  RescaleLut,
-  VoiLut,
-  InvertLut,
-  OutputLut,
-  CompositeLut,
-  PreCalculatedLut,
   CachedLut,
+  CompositeLut,
+  GrayscaleLutPipeline,
+  InvertLut,
+  Lut,
+  LutPipeline,
+  OutputLut,
+  PaletteColorLutPipeline,
+  PreCalculatedLut,
+  RescaleLut,
+  RgbColorLutPipeline,
+  VoiLut,
 } = require('./../src/Lut');
 const { Pixel } = require('./../src/Pixel');
+const { PhotometricInterpretation, TransferSyntax } = require('./../src/Constants');
+const DicomImage = require('./../src/DicomImage');
+const WindowLevel = require('./../src/WindowLevel');
 const ColorPalette = require('./../src/ColorPalette');
-const { TransferSyntax, PhotometricInterpretation } = require('./../src/Constants');
 
 const { getRandomInteger, getRandomNumber } = require('./utils');
 

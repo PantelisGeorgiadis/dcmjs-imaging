@@ -1,4 +1,5 @@
 const { SingleBitPixelPipeline } = require('./Pixel');
+const log = require('./log');
 
 const dcmjs = require('dcmjs');
 const { Tag } = dcmjs.data;
@@ -6,12 +7,56 @@ const { Tag } = dcmjs.data;
 //#region Overlay
 class Overlay {
   /**
-   * Creates an instance of Overlay.
+   * Renders the overlay on top of a rendered image.
+   * @method
+   * @param {Int32Array} renderedPixels - Rendered ABGR image to be updated with the overlay.
+   * @param {number} width - Rendered image width.
+   * @param {number} height - Rendered image height.
+   * @param {number} color - Overlay color packed in an integer.
+   */
+  // eslint-disable-next-line no-unused-vars
+  render(renderedPixels, width, height, color) {
+    throw new Error('render should be implemented');
+  }
+
+  /**
+   * Creates an array of overlay objects based on the image elements.
+   * @method
+   * @static
+   * @param {Object} elements - DICOM image elements.
+   * @returns {Array<Overlay>} Array of overlay objects.
+   */
+  static fromDicomImageElements(elements) {
+    const ret = [];
+
+    // G60xx
+    const elementKeys = Object.keys(elements);
+    for (let i = 0; i < elementKeys.length; i++) {
+      const element = elementKeys[i];
+      const tag = Tag.fromString(element);
+      if (tag.element() === 0x0010) {
+        if (tag.group() >= 0x6000 && tag.group() <= 0x60ff && tag.group() % 2 === 0) {
+          ret.push(new G60xxOverlay(elements, tag.group()));
+        }
+      }
+    }
+
+    return ret;
+  }
+}
+//#endregion
+
+//#region G60xxOverlay
+class G60xxOverlay extends Overlay {
+  /**
+   * Creates an instance of G60xxOverlay.
    * @constructor
    * @param {Object} elements - DICOM image elements.
    * @param {number} group - Overlay group.
    */
   constructor(elements, group) {
+    super();
+
     this.group = group;
 
     this.height = this._getElement(elements, Tag.fromNumbers(group, 0x0010).toCleanString()) || 0;
@@ -175,12 +220,15 @@ class Overlay {
    */
   render(renderedPixels, width, height, color) {
     if (!this.getData()) {
+      log.warn('G60xx overlay: No data. Skipping...');
       return;
     }
     if (!this.getWidth() || !this.getHeight()) {
+      log.warn('G60xx overlay: No width or height. Skipping...');
       return;
     }
     if (!this.getBitsAllocated()) {
+      log.warn('G60xx overlay: No bits allocated. Skipping...');
       return;
     }
 
@@ -215,29 +263,6 @@ class Overlay {
     }
   }
 
-  /**
-   * Creates an array of overlay objects based on the image elements.
-   * @method
-   * @static
-   * @param {Object} elements - DICOM image elements.
-   * @returns {Array<Overlay>} Array of overlay objects.
-   */
-  static fromDicomImageElements(elements) {
-    const ret = [];
-    const elementKeys = Object.keys(elements);
-    for (let i = 0; i < elementKeys.length; i++) {
-      const element = elementKeys[i];
-      const tag = Tag.fromString(element);
-      if (tag.element() === 0x0010) {
-        if (tag.group() >= 0x6000 && tag.group() <= 0x60ff && tag.group() % 2 === 0) {
-          ret.push(new Overlay(elements, tag.group()));
-        }
-      }
-    }
-
-    return ret;
-  }
-
   //#region Private Methods
   /**
    * Gets element value.
@@ -254,5 +279,5 @@ class Overlay {
 //#endregion
 
 //#region Exports
-module.exports = Overlay;
+module.exports = { G60xxOverlay, Overlay };
 //#endregion

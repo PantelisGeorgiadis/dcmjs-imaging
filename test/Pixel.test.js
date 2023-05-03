@@ -1,17 +1,17 @@
-const DicomImage = require('./../src/DicomImage');
 const {
-  Pixel,
-  PixelPipeline,
-  GrayscalePixelPipeline,
   ColorPixelPipeline,
+  GrayscalePixelPipeline,
+  Pixel,
   PixelConverter,
+  PixelPipeline,
 } = require('./../src/Pixel');
 const {
-  TransferSyntax,
-  PlanarConfiguration,
   PhotometricInterpretation,
   PixelRepresentation,
+  PlanarConfiguration,
+  TransferSyntax,
 } = require('./../src/Constants');
+const DicomImage = require('./../src/DicomImage');
 
 const chai = require('chai');
 const expect = chai.expect;

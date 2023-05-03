@@ -510,8 +510,8 @@ class NativePixelDecoder {
       throw new Error('NativePixelDecoder module is not initialized');
     }
 
-    const heap8 = new Uint8Array(this.wasmApi.wasmMemory.buffer);
-    const stringData = new Uint8Array(heap8.buffer, pointer, len);
+    const heap = new Uint8Array(this.wasmApi.wasmMemory.buffer);
+    const stringData = new Uint8Array(heap.buffer, pointer, len);
     let str = '';
     for (let i = 0; i < len; i++) {
       str += String.fromCharCode(stringData[i]);
