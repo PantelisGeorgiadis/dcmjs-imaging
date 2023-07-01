@@ -217,7 +217,7 @@ class VoiLut extends Lut {
    * @returns {number} Maximum output value.
    */
   getMaximumOutputValue() {
-    return 255;
+    return 0xff;
   }
 
   /**
@@ -592,7 +592,7 @@ class CompositeLut extends Lut {
       return lastLut.getMaximumOutputValue();
     }
 
-    return 255;
+    return 0xff;
   }
 
   /**

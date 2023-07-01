@@ -313,19 +313,17 @@ class DicomImage {
     const renderOverlays = opts.renderOverlays !== undefined ? opts.renderOverlays : true;
     if (renderOverlays) {
       const overlays = Overlay.fromDicomImageElements(this.getElements());
-      if (overlays.length > 0) {
-        for (let i = 0; i < overlays.length; i++) {
-          const overlay = overlays[i];
-          if (overlay instanceof G60xxOverlay) {
-            if (
-              frame + 1 < overlay.getFrameOrigin() ||
-              frame + 1 > overlay.getFrameOrigin() + overlay.getNumberOfFrames() - 1
-            ) {
-              continue;
-            }
-            overlay.render(renderedPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
+      for (let i = 0; i < overlays.length; i++) {
+        const overlay = overlays[i];
+        if (overlay instanceof G60xxOverlay) {
+          if (
+            frame + 1 < overlay.getFrameOrigin() ||
+            frame + 1 > overlay.getFrameOrigin() + overlay.getNumberOfFrames() - 1
+          ) {
+            continue;
           }
         }
+        overlay.render(renderedPixels, pixel.getWidth(), pixel.getHeight(), OverlayColor);
       }
     }
 
@@ -336,7 +334,7 @@ class DicomImage {
       rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
       rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
       rgbaPixels[p++] = pixel & 0xff;
-      rgbaPixels[p++] = 255;
+      rgbaPixels[p++] = 0xff;
     }
 
     // Rendering result
@@ -439,7 +437,7 @@ class DicomImage {
       rgbaPixels[p++] = (pixel >> 0x10) & 0xff;
       rgbaPixels[p++] = (pixel >> 0x08) & 0xff;
       rgbaPixels[p++] = pixel & 0xff;
-      rgbaPixels[p++] = 255;
+      rgbaPixels[p++] = 0xff;
     }
 
     // Rendering result

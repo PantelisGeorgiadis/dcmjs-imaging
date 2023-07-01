@@ -1,4 +1,5 @@
 const { SingleBitPixelPipeline } = require('./Pixel');
+const Shape = require('./Shape');
 const log = require('./log');
 
 const dcmjs = require('dcmjs');
@@ -39,6 +40,28 @@ class Overlay {
           ret.push(new G60xxOverlay(elements, tag.group()));
         }
       }
+    }
+
+    // GSPS
+    const graphicAnnotationSequence = elements['GraphicAnnotationSequence'];
+    if (
+      graphicAnnotationSequence !== undefined &&
+      Array.isArray(graphicAnnotationSequence) &&
+      graphicAnnotationSequence.length > 0
+    ) {
+      graphicAnnotationSequence.forEach((graphicAnnotationSequenceItem) => {
+        // Graphic
+        const graphicObjectSequence = graphicAnnotationSequenceItem['GraphicObjectSequence'];
+        if (
+          graphicObjectSequence !== undefined &&
+          Array.isArray(graphicObjectSequence) &&
+          graphicObjectSequence.length > 0
+        ) {
+          graphicObjectSequence.forEach((graphicObjectSequenceItem) => {
+            ret.push(new GspsGraphicOverlay(graphicObjectSequenceItem));
+          });
+        }
+      });
     }
 
     return ret;
@@ -278,6 +301,154 @@ class G60xxOverlay extends Overlay {
 }
 //#endregion
 
+//#region GspsGraphicOverlay
+class GspsGraphicOverlay extends Overlay {
+  /**
+   * Creates an instance of GspsGraphicOverlay.
+   * @constructor
+   * @param {Object} elements - DICOM image elements.
+   */
+  constructor(elements) {
+    super();
+
+    this.graphicAnnotationUnits = elements['GraphicAnnotationUnits'];
+    this.graphicDimensions = elements['GraphicDimensions'];
+    this.numberOfGraphicPoints = elements['NumberOfGraphicPoints'];
+    this.graphicData = elements['GraphicData'];
+    this.graphicType = elements['GraphicType'];
+    this.graphicFilled = elements['GraphicFilled'];
+  }
+
+  /**
+   * Gets the graphic annotation units.
+   * @method
+   * @returns {string} Graphic annotation units.
+   */
+  getGraphicAnnotationUnits() {
+    return this.graphicAnnotationUnits;
+  }
+
+  /**
+   * Gets the graphic dimensions.
+   * @method
+   * @returns {number} Graphic dimensions.
+   */
+  getGraphicDimensions() {
+    return this.graphicDimensions;
+  }
+
+  /**
+   * Gets the number of graphic points.
+   * @method
+   * @returns {number} Number of graphic points.
+   */
+  getNumberOfGraphicPoints() {
+    return this.numberOfGraphicPoints;
+  }
+
+  /**
+   * Gets the graphic data.
+   * @method
+   * @returns {Array<number>} Graphic data.
+   */
+  getGraphicData() {
+    return this.graphicData;
+  }
+
+  /**
+   * Gets the graphic type.
+   * @method
+   * @returns {string} Graphic type.
+   */
+  getGraphicType() {
+    return this.graphicType;
+  }
+
+  /**
+   * Gets the graphic filled.
+   * @method
+   * @returns {string} Graphic filled.
+   */
+  getGraphicFilled() {
+    return this.graphicFilled;
+  }
+
+  /**
+   * Renders the overlay on top of a rendered image.
+   * @method
+   * @param {Int32Array} renderedPixels - Rendered ABGR image to be updated with the overlay.
+   * @param {number} width - Rendered image width.
+   * @param {number} height - Rendered image height.
+   * @param {number} color - Overlay color packed in an integer.
+   */
+  render(renderedPixels, width, height, color) {
+    const graphicData = this.getGraphicData();
+    if (!graphicData || !Array.isArray(graphicData)) {
+      log.warn('GSPS graphic overlay: No graphic data. Skipping...');
+      return;
+    }
+    if (!this.getGraphicType()) {
+      log.warn('GSPS graphic overlay: No graphic type. Skipping...');
+      return;
+    }
+    if (
+      this.getGraphicAnnotationUnits() !== 'PIXEL' &&
+      this.getGraphicAnnotationUnits() !== 'DISPLAY'
+    ) {
+      log.warn(
+        `GSPS graphic overlay: ${this.getGraphicAnnotationUnits()} graphic annotation units is not supported. Skipping...`
+      );
+      return;
+    }
+    const graphicFilled = this.getGraphicFilled();
+    if (graphicFilled && graphicFilled === 'Y') {
+      log.warn(
+        'GSPS graphic overlay: Filled graphics are not supported. Will render just the basic shape...'
+      );
+    }
+
+    const isDisplay = this.getGraphicAnnotationUnits() === 'DISPLAY';
+    switch (this.getGraphicType()) {
+      case 'POINT':
+        {
+          if (graphicData.length !== 2) {
+            log.warn(
+              `GSPS graphic overlay: POINT graphic type should contain 2 graphic data values [Got: ${graphicData.length}]. Skipping...`
+            );
+            return;
+          }
+          // Double the points to use polyline
+          const points = [
+            isDisplay ? graphicData[0] * width : graphicData[0],
+            isDisplay ? graphicData[1] * height : graphicData[1],
+            isDisplay ? graphicData[0] * width : graphicData[0],
+            isDisplay ? graphicData[1] * height : graphicData[1],
+          ];
+          Shape.drawPolyline(renderedPixels, width, height, points, color);
+        }
+        break;
+      case 'POLYLINE':
+        {
+          const points = [];
+          for (let i = 0; i < graphicData.length / 2; i++) {
+            points.push(
+              isDisplay ? graphicData[i * 2] * width : graphicData[i * 2],
+              isDisplay ? graphicData[i * 2 + 1] * height : graphicData[i * 2 + 1]
+            );
+          }
+          Shape.drawPolyline(renderedPixels, width, height, points, color);
+        }
+        break;
+      default:
+        log.warn(
+          `GSPS graphic overlay: ${this.getGraphicType()} graphic type is not supported yet. Skipping...`
+        );
+        break;
+    }
+  }
+}
+//#endregion
+
 //#region Exports
-module.exports = { G60xxOverlay, Overlay };
+module.exports = { G60xxOverlay, GspsGraphicOverlay, Overlay };
 //#endregion

@@ -1,4 +1,4 @@
-const { G60xxOverlay, Overlay } = require('./../src/Overlay');
+const { G60xxOverlay, GspsGraphicOverlay, Overlay } = require('./../src/Overlay');
 const {
   PhotometricInterpretation,
   PixelRepresentation,
@@ -187,6 +187,140 @@ describe('Overlay', () => {
         60000015: 1,
         60000051: 1,
         60003000: [overlayData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+
+    const renderingResult = image.render();
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
+    expect(renderingResult.colorPalette).to.be.eq(StandardColorPalette.Grayscale);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedRenderedPixels[p++]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+    }
+  });
+
+  it('should correctly construct a GspsGraphicOverlay from GraphicObjectSequence item', () => {
+    const graphicObjectSequenceItem = {
+      GraphicAnnotationUnits: 'PIXEL',
+      GraphicDimensions: 2,
+      NumberOfGraphicPoints: 2,
+      GraphicData: [10, 20, 30, 40],
+      GraphicType: 'POLYLINE',
+      GraphicFilled: 'N',
+    };
+    const overlay = new GspsGraphicOverlay(graphicObjectSequenceItem);
+
+    expect(overlay.getGraphicAnnotationUnits()).to.be.eq('PIXEL');
+    expect(overlay.getGraphicDimensions()).to.be.eq(2);
+    expect(overlay.getNumberOfGraphicPoints()).to.be.eq(2);
+    expect(overlay.getGraphicData()).to.deep.eq([10, 20, 30, 40]);
+    expect(overlay.getGraphicType()).to.be.eq('POLYLINE');
+    expect(overlay.getGraphicFilled()).to.be.eq('N');
+  });
+
+  it('should correctly discover GSPS graphic overlays in DicomImage', () => {
+    const image = new DicomImage(
+      {
+        GraphicAnnotationSequence: [
+          {
+            GraphicObjectSequence: [
+              {
+                GraphicAnnotationUnits: 'PIXEL',
+                GraphicDimensions: 2,
+                NumberOfGraphicPoints: 2,
+                GraphicData: [10, 20, 30, 40],
+                GraphicType: 'POLYLINE',
+                GraphicFilled: 'N',
+              },
+              {
+                GraphicAnnotationUnits: 'PIXEL',
+                GraphicDimensions: 1,
+                NumberOfGraphicPoints: 2,
+                GraphicData: [40, 30],
+                GraphicType: 'POINT',
+                GraphicFilled: 'N',
+              },
+            ],
+          },
+        ],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const overlays = Overlay.fromDicomImageElements(image.getElements());
+    expect(overlays.length).to.be.eq(2);
+
+    const image2 = new DicomImage(
+      {
+        NumberOfFrames: 1,
+        PixelData: [Uint8Array.from([1, 2, 3, 4, 5]).buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const overlays2 = Overlay.fromDicomImageElements(image2.getElements());
+    expect(overlays2.length).to.be.eq(0);
+  });
+
+  it('should correctly render POINT and POLYLINE GSPS graphic overlays (PIXEL)', () => {
+    const width = 4;
+    const height = 4;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0x00, 0x00, 0x00,   0xff, 0x00, 0xff,   0xff, 0x00, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0x00, 0xff,   0xff, 0x00, 0xff,   0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00,   0xff, 0x00, 0xff,   0xff, 0x00, 0xff,   0xff, 0x00, 0xff,
+      0x00, 0x00, 0x00,   0xff, 0x00, 0xff,   0xff, 0x00, 0xff,   0x00, 0x00, 0x00,
+    ]);
+    const image = new DicomImage(
+      {
+        Rows: height,
+        Columns: width,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PixelRepresentation: PixelRepresentation.Unsigned,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        SmallestImagePixelValue: 0,
+        LargestImagePixelValue: Math.pow(2, 8) - 1,
+        PixelData: [pixels.buffer],
+        GraphicAnnotationSequence: [
+          {
+            GraphicObjectSequence: [
+              {
+                GraphicAnnotationUnits: 'PIXEL',
+                GraphicDimensions: 2,
+                NumberOfGraphicPoints: 5,
+                GraphicData: [1, 0, 2, 0, 2, 3, 1, 3, 1, 0],
+                GraphicType: 'POLYLINE',
+                GraphicFilled: 'N',
+              },
+              {
+                GraphicAnnotationUnits: 'PIXEL',
+                GraphicDimensions: 2,
+                NumberOfGraphicPoints: 1,
+                GraphicData: [3, 2],
+                GraphicType: 'POINT',
+                GraphicFilled: 'N',
+              },
+            ],
+          },
+        ],
       },
       TransferSyntax.ImplicitVRLittleEndian
     );
