@@ -78,7 +78,12 @@ expectType<number>(dicomImage.getHeight());
 expectType<number>(dicomImage.getNumberOfFrames());
 
 expectError(
-  dicomImage.render({ frame: '1', windowLevel: 'WW/WL', renderOverlays: 1, calculateHistograms: 0 })
+  dicomImage.render({
+    frame: '1',
+    windowLevel: 'WW/WL',
+    renderOverlays: 1,
+    calculateHistograms: 0,
+  })
 );
 expectError(dicomImage.renderIcon({ frame: 1 }));
 expectType<{

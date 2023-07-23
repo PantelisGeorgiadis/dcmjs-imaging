@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <title>dcmjs-imaging rendering example</title>
@@ -212,7 +212,7 @@
           gl.shaderSource(fragmentShader, BaseFragmentShader);
           gl.compileShader(fragmentShader);
           if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-            throw new Error('Error compiling fragment shader', gl.getShaderInfoLog(vertexShader));
+            throw new Error('Error compiling fragment shader', gl.getShaderInfoLog(fragmentShader));
           }
 
           const program = gl.createProgram();

@@ -1,6 +1,6 @@
 {
   "name": "dcmjs-imaging",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "DICOM image and overlay rendering for Node.js and browser using dcmjs",
   "main": "build/dcmjs-imaging.min.js",
   "module": "build/dcmjs-imaging.min.js",
@@ -25,7 +25,7 @@
     "test:types": "tsd",
     "test": "npm run test:types && npm run test:node && npm run test:browser",
     "format:cpp": "clang-format -i --glob=wasm/src/*.{h,cpp}",
-    "lint": "eslint -c .eslintrc.json --fix src && prettier --tab-width 2 --single-quote true --print-width 100 --use-tabs false --write src/**/*.js test/**/*.js examples/**/*.{js,ts,html} *.ts"
+    "lint": "eslint -c .eslintrc.json --fix src && prettier --tab-width 2 --single-quote true --print-width 100 --use-tabs false --trailing-comma es5 --write src/**/*.js test/**/*.js examples/**/*.{js,ts,html} *.ts"
   },
   "repository": {
     "type": "git",
@@ -57,7 +57,7 @@
     "clang-format": "^1.8.0",
     "copy-webpack-plugin": "^11.0.0",
     "docdash": "^2.0.1",
-    "eslint": "^8.44.0",
+    "eslint": "^8.45.0",
     "jsdoc": "^4.0.2",
     "karma": "^6.4.2",
     "karma-browserify": "^8.1.0",
@@ -69,14 +69,14 @@
     "mocha": "^10.2.0",
     "open-cli": "^7.2.0",
     "pako": "^2.1.0",
-    "prettier": "^2.8.8",
+    "prettier": "^3.0.0",
     "shx": "^0.3.4",
     "sinon": "^15.2.0",
     "terser-webpack-plugin": "^5.3.9",
     "ts-node": "^10.9.1",
     "tsd": "^0.28.1",
     "typescript": "^5.1.6",
-    "webpack": "^5.88.1",
+    "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.15.1"
   }
