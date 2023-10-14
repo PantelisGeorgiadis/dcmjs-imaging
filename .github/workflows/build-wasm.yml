@@ -1,0 +1,23 @@
+name: WASM CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: mymindstorm/setup-emsdk@v11
+
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Make build script executable
+        working-directory: ./wasm
+        run: chmod +x ./build.sh
+      - name: Build
+        working-directory: ./wasm
+        run: ./build.sh

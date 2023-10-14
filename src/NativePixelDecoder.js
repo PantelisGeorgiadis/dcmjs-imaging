@@ -432,7 +432,7 @@ class NativePixelDecoder {
          * Receives a string message from the WebAssembly.
          * @method
          * @param {number} pointer - The string message pointer.
-         * @param {number} pointer - The string message length.
+         * @param {number} len - The string message length.
          */
         onNativePixelDecoderMessage: (pointer, len) => {
           if (!this.logNativeDecodersMessages) {
@@ -447,7 +447,7 @@ class NativePixelDecoder {
          * Receives an exception from the WebAssembly.
          * @method
          * @param {number} pointer - The exception reason string pointer.
-         * @param {number} pointer - The exception reason string length.
+         * @param {number} len - The exception reason string length.
          * @throws Error if NativePixelDecoder module exception occurs.
          */
         onNativePixelDecoderException: (pointer, len) => {
