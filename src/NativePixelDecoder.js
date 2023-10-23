@@ -1,4 +1,3 @@
-/* global WebAssembly */
 const { PhotometricInterpretation } = require('./Constants');
 const log = require('./log');
 

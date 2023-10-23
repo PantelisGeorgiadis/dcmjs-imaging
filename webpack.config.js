@@ -1,7 +1,7 @@
-const path = require('path');
+const { BannerPlugin } = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const { BannerPlugin } = require('webpack');
+const path = require('path');
 const pkg = require('./package.json');
 
 const rootPath = process.cwd();
