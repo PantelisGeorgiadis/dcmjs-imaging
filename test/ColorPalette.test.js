@@ -71,4 +71,10 @@ describe('ColorPalette', () => {
       ColorPalette.getColorPalettePaletteColor(pixel);
     }).to.throw();
   });
+
+  it('should throw for non existent standard color palette', () => {
+    expect(() => {
+      ColorPalette.getColorPaletteStandard(-1);
+    }).to.throw();
+  });
 });

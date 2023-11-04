@@ -773,13 +773,13 @@ class PixelPipeline {
         throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
       }
     } else if (
-      photometricInterpretation == PhotometricInterpretation.Rgb ||
-      photometricInterpretation == PhotometricInterpretation.YbrFull ||
-      photometricInterpretation == PhotometricInterpretation.YbrFull422 ||
-      photometricInterpretation == PhotometricInterpretation.YbrPartial422 ||
-      photometricInterpretation == PhotometricInterpretation.Cmyk ||
-      photometricInterpretation == PhotometricInterpretation.Argb ||
-      photometricInterpretation == PhotometricInterpretation.Hsv
+      photometricInterpretation === PhotometricInterpretation.Rgb ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull422 ||
+      photometricInterpretation === PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation === PhotometricInterpretation.Cmyk ||
+      photometricInterpretation === PhotometricInterpretation.Argb ||
+      photometricInterpretation === PhotometricInterpretation.Hsv
     ) {
       let pixels = pixel.getFrameDataU8(frame);
       if (pixel.getPlanarConfiguration() === PlanarConfiguration.Planar) {
@@ -787,25 +787,25 @@ class PixelPipeline {
       }
       if (photometricInterpretation === PhotometricInterpretation.YbrFull) {
         pixels = PixelConverter.ybrFullToRgb(pixels);
-      } else if (photometricInterpretation == PhotometricInterpretation.YbrFull422) {
+      } else if (photometricInterpretation === PhotometricInterpretation.YbrFull422) {
         pixels = PixelConverter.ybrFull422ToRgb(pixels, pixel.getWidth());
-      } else if (photometricInterpretation == PhotometricInterpretation.YbrPartial422) {
+      } else if (photometricInterpretation === PhotometricInterpretation.YbrPartial422) {
         pixels = PixelConverter.ybrPartial422ToRgb(pixels, pixel.getWidth());
-      } else if (photometricInterpretation == PhotometricInterpretation.Cmyk) {
+      } else if (photometricInterpretation === PhotometricInterpretation.Cmyk) {
         if (pixel.getSamplesPerPixel() !== 4) {
           throw new Error(
             `Unsupported samples per pixel value for CMYK: ${pixel.getSamplesPerPixel()}`
           );
         }
         pixels = PixelConverter.cmykToRgb(pixels, pixel.getWidth(), pixel.getHeight());
-      } else if (photometricInterpretation == PhotometricInterpretation.Argb) {
+      } else if (photometricInterpretation === PhotometricInterpretation.Argb) {
         if (pixel.getSamplesPerPixel() !== 4) {
           throw new Error(
             `Unsupported samples per pixel value for ARGB: ${pixel.getSamplesPerPixel()}`
           );
         }
         pixels = PixelConverter.argbToRgb(pixels, pixel.getWidth(), pixel.getHeight());
-      } else if (photometricInterpretation == PhotometricInterpretation.Hsv) {
+      } else if (photometricInterpretation === PhotometricInterpretation.Hsv) {
         pixels = PixelConverter.hsvToRgb(pixels);
       }
 
@@ -1262,7 +1262,7 @@ class PixelConverter {
       );
       output[p++] = this._truncAndClamp(1.1644 * (y2 - 16) + 2.0173 * (cb - 128) + 0.5, 0x00, 0xff);
 
-      if (++col == width) {
+      if (++col === width) {
         col = 0;
       }
     }

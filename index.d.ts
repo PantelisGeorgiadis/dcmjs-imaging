@@ -1,4 +1,4 @@
-import log = require('loglevel');
+import log from 'loglevel';
 
 declare namespace StandardColorPalette {
   const Grayscale: number;
