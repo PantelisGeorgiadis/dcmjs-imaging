@@ -480,8 +480,9 @@ class NativePixelDecoder {
     );
     if (!isNodeJs) {
       const response = await eval('fetch(this.webAssemblyModulePathOrUrl || wasmFilename)');
+      const responseArrayBuffer = await response.arrayBuffer();
 
-      return await response.arrayBuffer();
+      return responseArrayBuffer;
     }
 
     const fs = eval("require('fs')");

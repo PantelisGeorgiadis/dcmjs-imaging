@@ -17,6 +17,9 @@ const TransferSyntax = {
   JpegLsLossy: '1.2.840.10008.1.2.4.81',
   Jpeg2000Lossless: '1.2.840.10008.1.2.4.90',
   Jpeg2000Lossy: '1.2.840.10008.1.2.4.91',
+  HtJpeg2000Lossless: '1.2.840.10008.1.2.4.201',
+  HtJpeg2000LosslessRpcl: '1.2.840.10008.1.2.4.202',
+  HtJpeg2000Lossy: '1.2.840.10008.1.2.4.203',
 };
 Object.freeze(TransferSyntax);
 //#endregion
@@ -40,6 +43,9 @@ const RenderableTransferSyntaxes = [
   TransferSyntax.JpegLsLossy,
   TransferSyntax.Jpeg2000Lossless,
   TransferSyntax.Jpeg2000Lossy,
+  TransferSyntax.HtJpeg2000Lossless,
+  TransferSyntax.HtJpeg2000LosslessRpcl,
+  TransferSyntax.HtJpeg2000Lossy,
 ];
 Object.freeze(RenderableTransferSyntaxes);
 //#endregion

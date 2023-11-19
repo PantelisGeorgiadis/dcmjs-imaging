@@ -4,7 +4,7 @@ set -e
 WASM_HOME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CHARLS_INCL_DIR=$WASM_HOME_DIR/lib/charls-2.3.4/include
 CHARLS_SRC_DIR=$WASM_HOME_DIR/lib/charls-2.3.4/src
-OPENJPEG_SRC_DIR=$WASM_HOME_DIR/lib/openjpeg-2.4.0
+OPENJPEG_SRC_DIR=$WASM_HOME_DIR/lib/openjpeg-2.5.0
 LIBIJG8_SRC_DIR=$WASM_HOME_DIR/lib/libijg8-6b
 LIBIJG12_SRC_DIR=$WASM_HOME_DIR/lib/libijg12-6b
 LIBIJG16_SRC_DIR=$WASM_HOME_DIR/lib/libijg16-6b

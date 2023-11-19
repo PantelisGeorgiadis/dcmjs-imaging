@@ -838,8 +838,8 @@ class LutPipeline {
         colorPalette !== undefined && colorPalette !== StandardColorPalette.Grayscale
           ? ColorPalette.getColorPaletteStandard(colorPalette)
           : photometricInterpretation === PhotometricInterpretation.Monochrome1
-          ? ColorPalette.getColorPaletteMonochrome1()
-          : ColorPalette.getColorPaletteMonochrome2()
+            ? ColorPalette.getColorPaletteMonochrome1()
+            : ColorPalette.getColorPaletteMonochrome2()
       );
       pipeline.setWindowLevel(windowLevel || this._calculateWindowLevel(pixel, frame));
       pipeline.setVoiLutFunction(pixel.getVoiLutFunction());
@@ -906,8 +906,8 @@ class LutPipeline {
       frameData = pixel.hasFloatPixelData()
         ? pixel.getFrameDataF32(frame)
         : pixel.isSigned()
-        ? pixel.getFrameDataS32(frame)
-        : pixel.getFrameDataU32(frame);
+          ? pixel.getFrameDataS32(frame)
+          : pixel.getFrameDataU32(frame);
     } else {
       throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
     }

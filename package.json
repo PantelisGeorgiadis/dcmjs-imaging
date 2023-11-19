@@ -1,6 +1,6 @@
 {
   "name": "dcmjs-imaging",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "DICOM image and overlay rendering for Node.js and browser using dcmjs",
   "main": "build/dcmjs-imaging.min.js",
   "module": "build/dcmjs-imaging.min.js",
@@ -44,12 +44,12 @@
   "funding": "https://github.com/PantelisGeorgiadis/dcmjs-imaging?sponsor=1",
   "homepage": "https://github.com/PantelisGeorgiadis/dcmjs-imaging",
   "dependencies": {
-    "dcmjs": "^0.29.12",
+    "dcmjs": "^0.29.13",
     "loglevel": "^1.8.1",
     "loglevel-plugin-prefix": "^0.8.4"
   },
   "devDependencies": {
-    "@types/bmp-js": "^0.1.1",
+    "@types/bmp-js": "^0.1.2",
     "bmp-js": "^0.1.0",
     "browserify": "^17.0.0",
     "c8": "^8.0.1",
@@ -57,7 +57,7 @@
     "clang-format": "^1.8.0",
     "copy-webpack-plugin": "^11.0.0",
     "docdash": "^2.0.2",
-    "eslint": "^8.53.0",
+    "eslint": "^8.54.0",
     "jsdoc": "^4.0.2",
     "karma": "^6.4.2",
     "karma-browserify": "^8.1.0",
@@ -69,7 +69,7 @@
     "mocha": "^10.2.0",
     "open-cli": "^7.2.0",
     "pako": "^2.1.0",
-    "prettier": "^3.0.3",
+    "prettier": "^3.1.0",
     "shx": "^0.3.4",
     "sinon": "^17.0.1",
     "terser-webpack-plugin": "^5.3.9",
