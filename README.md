@@ -49,6 +49,9 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 - JPEG-LS Lossy Image Compression - Near-Lossless (1.2.840.10008.1.2.4.81)\*
 - JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.90)\*
 - JPEG 2000 Image Compression (1.2.840.10008.1.2.4.91)\*
+- High Throughput JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.201)\*
+- High Throughput JPEG 2000 with RPCL Options Image Compression - Lossless Only (1.2.840.10008.1.2.4.202)\*
+- High Throughput JPEG 2000 Image Compression (1.2.840.10008.1.2.4.203)\*
 --------
 \*: Syntax is decoded using the native decoders WebAssembly.
 

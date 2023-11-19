@@ -1,4 +1,5 @@
 #pragma once
+
 #include "DecoderContext.h"
 #include "DecoderParameters.h"
 

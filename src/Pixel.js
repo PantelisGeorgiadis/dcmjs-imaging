@@ -577,6 +577,12 @@ class Pixel {
         this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy
       ) {
         return NativePixelDecoder.decodeJpeg2000(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000LosslessRpcl ||
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossy
+      ) {
+        return NativePixelDecoder.decodeJpeg2000(this, frameFragmentsData);
       }
 
       throw new Error(
@@ -766,8 +772,8 @@ class PixelPipeline {
           pixel.hasFloatPixelData()
             ? pixel.getFrameDataF32(frame)
             : pixel.isSigned()
-            ? pixel.getFrameDataS32(frame)
-            : pixel.getFrameDataU32(frame)
+              ? pixel.getFrameDataS32(frame)
+              : pixel.getFrameDataU32(frame)
         );
       } else {
         throw new Error(`Unsupported pixel data value for bits stored: ${pixel.getBitsStored()}`);
@@ -843,10 +849,13 @@ class PixelPipeline {
       pixel.planarConfiguration = PlanarConfiguration.Interleaved;
     }
 
-    // For color JPEG 2000 datasets, colorspace is converted to RGB in WebAssembly
+    // For color (HT) JPEG 2000 datasets, colorspace is converted to RGB in WebAssembly
     if (
       (pixel.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossless ||
-        pixel.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy) &&
+        pixel.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossless ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000LosslessRpcl ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossy) &&
       (pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrRct ||
         pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrIct)
     ) {
