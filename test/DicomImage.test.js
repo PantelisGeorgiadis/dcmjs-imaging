@@ -987,17 +987,17 @@ describe('DicomImage', () => {
 
     const arrayBuffers = [];
 
+    // Commented out to test no preamble/prefix patching
     // Preamble
-    arrayBuffers.push(new ArrayBuffer(128));
-
-    // DICM
-    const dicm = Uint8Array.from([
-      'D'.charCodeAt(0),
-      'I'.charCodeAt(0),
-      'C'.charCodeAt(0),
-      'M'.charCodeAt(0),
-    ]);
-    arrayBuffers.push(dicm.buffer.slice(dicm.byteOffset, dicm.byteOffset + dicm.byteLength));
+    // arrayBuffers.push(new ArrayBuffer(128));
+    // Prefix
+    // const prefix = Uint8Array.from([
+    //   'D'.charCodeAt(0),
+    //   'I'.charCodeAt(0),
+    //   'C'.charCodeAt(0),
+    //   'M'.charCodeAt(0),
+    // ]);
+    // arrayBuffers.push(prefix.buffer.slice(prefix.byteOffset, prefix.byteOffset + prefix.byteLength));
 
     // Meta info header
     const metaElements = new DicomImage(
@@ -1024,7 +1024,8 @@ describe('DicomImage', () => {
       8,
       3,
       PixelRepresentation.Unsigned,
-      PhotometricInterpretation.Rgb,
+      // Commented out to test no photometric interpretation patching
+      undefined, // PhotometricInterpretation.Rgb,
       pixels.buffer,
       TransferSyntax.ExplicitVRLittleEndian
     );

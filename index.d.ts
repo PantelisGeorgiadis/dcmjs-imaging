@@ -167,7 +167,10 @@ declare class DicomImage {
   /**
    * Gets elements encoded in a DICOM dataset buffer.
    */
-  getDenaturalizedDataset(): ArrayBuffer;
+  getDenaturalizedDataset(
+    writeOptions?: Record<string, unknown>,
+    nameMap?: Record<string, unknown>
+  ): ArrayBuffer;
 
   /**
    * Gets the image width.

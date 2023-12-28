@@ -15,9 +15,10 @@ const {
 const { Pixel, PixelPipeline } = require('./Pixel');
 const { G60xxOverlay, Overlay } = require('./Overlay');
 const WindowLevel = require('./WindowLevel');
+const log = require('./log');
 
 const dcmjs = require('dcmjs');
-const { DicomMetaDictionary, DicomMessage, ReadBufferStream, WriteBufferStream } = dcmjs.data;
+const { DicomMessage, DicomMetaDictionary, ReadBufferStream, Tag, WriteBufferStream } = dcmjs.data;
 const dcmjsLog = dcmjs.log;
 
 //#region DicomImage
@@ -103,12 +104,20 @@ class DicomImage {
   /**
    * Gets elements encoded in a DICOM dataset buffer.
    * @method
-   * @returns {ArrayBuffer} DICOM dataset.
+   * @param {Object} [writeOptions] - The write options to pass through to `DicomMessage.write()`.
+   * @param {Object} [nameMap] - Additional DICOM tags to recognize when denaturalizing the dataset.
+   * @returns {ArrayBuffer} DICOM dataset buffer.
    */
-  getDenaturalizedDataset() {
-    const denaturalizedDataset = DicomMetaDictionary.denaturalizeDataset(this.getElements());
+  getDenaturalizedDataset(writeOptions, nameMap) {
+    const denaturalizedDataset = nameMap
+      ? DicomMetaDictionary.denaturalizeDataset(this.getElements(), {
+          ...DicomMetaDictionary.nameMap,
+          ...nameMap,
+        })
+      : DicomMetaDictionary.denaturalizeDataset(this.getElements());
+
     const stream = new WriteBufferStream();
-    DicomMessage.write(denaturalizedDataset, stream, this.transferSyntaxUid, {});
+    DicomMessage.write(denaturalizedDataset, stream, this.transferSyntaxUid, writeOptions);
 
     return stream.getBuffer();
   }
@@ -195,19 +204,144 @@ class DicomImage {
 
   //#region Private Methods
   /**
-   * Loads a dataset from p10 buffer.
+   * Loads a dataset from P10 buffer.
    * @method
    * @private
    * @param {ArrayBuffer} arrayBuffer - DICOM P10 array buffer.
    * @returns {Object} Dataset elements and transfer syntax UID.
    */
   _fromP10Buffer(arrayBuffer) {
-    const dicomDict = DicomMessage.readFile(arrayBuffer, { ignoreErrors: true });
+    const dicomDict = DicomMessage.readFile(
+      this._checkAndPatchP10PreamblePrefixAndMeta(arrayBuffer),
+      {
+        ignoreErrors: true,
+      }
+    );
     const meta = DicomMetaDictionary.naturalizeDataset(dicomDict.meta);
     const transferSyntaxUid = meta.TransferSyntaxUID;
     const elements = DicomMetaDictionary.naturalizeDataset(dicomDict.dict);
 
     return { elements, transferSyntaxUid };
+  }
+
+  /**
+   * Checks and patches the P10 buffer preamble, prefix and meta file information header.
+   * @method
+   * @private
+   * @param {ArrayBuffer} arrayBuffer - DICOM P10 array buffer.
+   * @returns {ArrayBuffer} Patched DICOM P10 array buffer.
+   */
+  _checkAndPatchP10PreamblePrefixAndMeta(arrayBuffer) {
+    if (arrayBuffer.byteLength < 132) {
+      throw new Error(
+        `Invalid DICOM file - buffer length is less than 132 bytes [length: ${arrayBuffer.byteLength}]`
+      );
+    }
+
+    const stream = new ReadBufferStream(arrayBuffer, true, {
+      noCopy: true,
+    });
+    stream.reset();
+    stream.increment(128);
+    if (stream.readAsciiString(4) === 'DICM') {
+      return arrayBuffer;
+    }
+
+    let bigEndian = false;
+    stream.reset();
+
+    // Test for file meta info
+    let group = stream.readUint16();
+    if (group > 0x00ff) {
+      // Big endian -- swap
+      group = ((group & 0xff) << 8) | ((group >> 8) & 0xff);
+      stream.setEndian(false);
+      bigEndian = true;
+    }
+    if (group > 0x00ff) {
+      throw new Error(`Invalid DICOM file - read invalid group [group: ${group}]`);
+    }
+
+    const arrayBuffers = [];
+    arrayBuffers.push(new ArrayBuffer(128));
+    const prefix = Uint8Array.from([
+      'D'.charCodeAt(0),
+      'I'.charCodeAt(0),
+      'C'.charCodeAt(0),
+      'M'.charCodeAt(0),
+    ]);
+    arrayBuffers.push(
+      prefix.buffer.slice(prefix.byteOffset, prefix.byteOffset + prefix.byteLength)
+    );
+
+    if (group > 0x0002) {
+      // No meta file information -- attempt to find the syntax
+      const element = stream.readUint16();
+      const tag = Tag.fromNumbers(group, element);
+      const dictionaryEntry = DicomMessage.lookupTag(tag);
+      if (element !== 0x0000 && !dictionaryEntry) {
+        throw new Error(
+          `Invalid DICOM file - could not find tag in the dictionary [tag: ${tag.toString()}]`
+        );
+      }
+
+      // Guess encoding
+      const vr = stream.readVR();
+      const vr0 = vr.charCodeAt(0);
+      const vr1 = vr.charCodeAt(1);
+      const implicit = vr0 >= 65 && vr0 <= 90 && vr1 >= 65 && vr1 <= 90 ? false : true;
+      if (bigEndian && implicit) {
+        throw new Error('Invalid DICOM file - implicit VR big endian syntax found');
+      }
+
+      // Guess transfer syntax
+      const syntax = bigEndian
+        ? TransferSyntax.ExplicitVRBigEndian
+        : implicit
+          ? TransferSyntax.ImplicitVRLittleEndian
+          : TransferSyntax.ExplicitVRLittleEndian;
+
+      // Build meta file information including just the guessed transfer syntax
+      const metaElementsStream = new WriteBufferStream();
+      DicomMessage.write(
+        DicomMetaDictionary.denaturalizeDataset({
+          TransferSyntaxUID: syntax,
+        }),
+        metaElementsStream,
+        TransferSyntax.ExplicitVRLittleEndian,
+        {}
+      );
+
+      // Calculate the meta file information length and prepend it
+      const metaFileInformationStream = new WriteBufferStream();
+      DicomMessage.writeTagObject(
+        metaFileInformationStream,
+        '00020000',
+        'UL',
+        metaElementsStream.size,
+        TransferSyntax.ExplicitVRLittleEndian,
+        {}
+      );
+      metaFileInformationStream.concat(metaElementsStream);
+      arrayBuffers.push(metaFileInformationStream.getBuffer());
+
+      log.warn(
+        `DICOM meta file information was not found and was added containing transfer syntax UID ${syntax}`
+      );
+    }
+    arrayBuffers.push(arrayBuffer);
+
+    // Concatenate all buffers
+    return arrayBuffers.reduce((pBuf, cBuf, i) => {
+      if (i === 0) {
+        return pBuf;
+      }
+      const tmp = new Uint8Array(pBuf.byteLength + cBuf.byteLength);
+      tmp.set(new Uint8Array(pBuf), 0);
+      tmp.set(new Uint8Array(cBuf), pBuf.byteLength);
+
+      return tmp.buffer;
+    }, arrayBuffers[0]);
   }
 
   /**

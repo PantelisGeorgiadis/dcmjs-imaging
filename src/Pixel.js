@@ -6,6 +6,7 @@ const {
 } = require('./Constants');
 const Histogram = require('./Histogram');
 const NativePixelDecoder = require('./NativePixelDecoder');
+const log = require('./log');
 
 //#region Pixel
 class Pixel {
@@ -57,6 +58,8 @@ class Pixel {
     );
     this.pixelData = this._getElement(elements, 'PixelData');
     this.floatPixelData = this._getElement(elements, 'FloatPixelData');
+
+    this._applyPixelFixes();
   }
 
   /**
@@ -632,8 +635,65 @@ class Pixel {
   }
 
   /**
+   * Applies common pixel fixes.
+   * @method
+   * @private
+   * @param {Pixel} pixel - Pixel object.
+   */
+  _applyPixelFixes() {
+    // For empty photometric interpretation, make a guess
+    // based on the samples per pixel value and transfer syntax
+    if (
+      !this.photometricInterpretation &&
+      this.samplesPerPixel &&
+      (this.pixelData || this.floatPixelData)
+    ) {
+      if (this.samplesPerPixel === 1) {
+        this.photometricInterpretation = PhotometricInterpretation.Monochrome2;
+      } else if (this.samplesPerPixel === 3) {
+        if (
+          this.transferSyntaxUid === TransferSyntax.ImplicitVRLittleEndian ||
+          this.transferSyntaxUid === TransferSyntax.ExplicitVRLittleEndian ||
+          this.transferSyntaxUid === TransferSyntax.DeflatedExplicitVRLittleEndian ||
+          this.transferSyntaxUid === TransferSyntax.ExplicitVRBigEndian
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.Rgb;
+        } else if (
+          this.transferSyntaxUid === TransferSyntax.JpegBaselineProcess1 ||
+          this.transferSyntaxUid === TransferSyntax.JpegBaselineProcess2_4
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.YbrFull422;
+        } else if (
+          this.transferSyntaxUid === TransferSyntax.JpegLosslessProcess14 ||
+          this.transferSyntaxUid === TransferSyntax.JpegLosslessProcess14V1 ||
+          this.transferSyntaxUid === TransferSyntax.JpegLsLossless ||
+          this.transferSyntaxUid === TransferSyntax.JpegLsLossy
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.YbrFull;
+        } else if (
+          this.transferSyntaxUid === TransferSyntax.Jpeg2000Lossless ||
+          this.transferSyntaxUid === TransferSyntax.HtJpeg2000Lossless ||
+          this.transferSyntaxUid === TransferSyntax.HtJpeg2000LosslessRpcl
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.YbrRct;
+        } else if (
+          this.transferSyntaxUid === TransferSyntax.Jpeg2000Lossy ||
+          this.transferSyntaxUid === TransferSyntax.HtJpeg2000Lossy
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.YbrIct;
+        }
+      }
+      log.warn(
+        `Empty photometric interpretation was found and was converted to ${this.photometricInterpretation}` +
+          ` because samples per pixel is ${this.samplesPerPixel} and transfer syntax UID is ${this.transferSyntaxUid}`
+      );
+    }
+  }
+
+  /**
    * Gets element value.
    * @method
+   * @private
    * @param {Object} elements - Elements.
    * @param {string} tag - Element tag.
    * @returns {string|undefined} Element value or undefined if element doesn't exist.
