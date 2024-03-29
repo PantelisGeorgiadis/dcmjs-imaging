@@ -356,11 +356,13 @@ class DicomImage {
     const stream = new ReadBufferStream(arrayBuffer);
     // Use the proper syntax length (based on transfer syntax UID)
     // since dcmjs doesn't do that internally.
-    let syntaxLengthTypeToDecode =
+    const syntaxTypeToDecode =
       transferSyntaxUid === TransferSyntax.ImplicitVRLittleEndian
         ? TransferSyntax.ImplicitVRLittleEndian
-        : TransferSyntax.ExplicitVRLittleEndian;
-    const denaturalizedDataset = DicomMessage._read(stream, syntaxLengthTypeToDecode, {
+        : transferSyntaxUid === TransferSyntax.ExplicitVRBigEndian
+          ? TransferSyntax.ExplicitVRBigEndian
+          : TransferSyntax.ExplicitVRLittleEndian;
+    const denaturalizedDataset = DicomMessage._read(stream, syntaxTypeToDecode, {
       ignoreErrors: true,
     });
 
