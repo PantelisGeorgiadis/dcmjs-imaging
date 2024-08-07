@@ -157,6 +157,7 @@ const histograms = renderingResult.histograms;
 const colorPalette = renderingResult.colorPalette;
 ```
 Please check a live example [here][dcmjs-imaging-live-example-url].
+Please check the respecting [Wiki][dcmjs-imaging-wiki-examples-url] section for more examples.
 
 ### Related libraries
 * [dcmjs-dimse][dcmjs-dimse-url] - DICOM DIMSE implementation for Node.js using dcmjs.
@@ -183,3 +184,4 @@ dcmjs-imaging is released under the MIT License.
 [dcmjs-imaging-live-example-url]: https://unpkg.com/dcmjs-imaging@latest/build/index.html
 
 [emscripten-sdk-url]: https://emscripten.org/docs/getting_started/downloads.html
+[dcmjs-imaging-wiki-examples-url]: https://github.com/PantelisGeorgiadis/dcmjs-imaging/wiki/Examples
