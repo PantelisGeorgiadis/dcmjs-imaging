@@ -1,4 +1,4 @@
-[![NPM version][npm-version-image]][npm-url] [![build][build-image]][build-url] [![MIT License][license-image]][license-url] 
+[![NPM version][npm-version-image]][npm-url] [![NPM downloads][npm-downloads-image]][npm-url] [![build][build-image]][build-url] [![MIT License][license-image]][license-url] 
 
 # dcmjs-imaging
 DICOM image and overlay rendering pipeline for Node.js and browser using Steve Pieper's [dcmjs][dcmjs-url] library.
@@ -168,6 +168,7 @@ dcmjs-imaging is released under the MIT License.
 
 [npm-url]: https://npmjs.org/package/dcmjs-imaging
 [npm-version-image]: https://img.shields.io/npm/v/dcmjs-imaging.svg?style=flat
+[npm-downloads-image]: http://img.shields.io/npm/dm/dcmjs-imaging.svg?style=flat
 
 [build-url]: https://github.com/PantelisGeorgiadis/dcmjs-imaging/actions/workflows/build.yml
 [build-image]: https://github.com/PantelisGeorgiadis/dcmjs-imaging/actions/workflows/build.yml/badge.svg?branch=master
