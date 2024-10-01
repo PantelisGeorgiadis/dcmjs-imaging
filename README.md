@@ -22,7 +22,7 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 	npm install
 	npm run build
 
-### Build native decoders WebAssembly
+### Build native decoders WebAssembly (optional)
 
 	cd wasm
 	./build.sh
