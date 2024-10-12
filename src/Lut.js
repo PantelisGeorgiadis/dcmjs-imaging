@@ -883,9 +883,16 @@ class LutPipeline {
       pixel.getSmallestImagePixelValue() !== undefined &&
       pixel.getLargestImagePixelValue() !== undefined
     ) {
-      const smallestValue = pixel.getSmallestImagePixelValue();
-      const largestValue = pixel.getLargestImagePixelValue();
+      let smallestValue = pixel.getSmallestImagePixelValue();
+      let largestValue = pixel.getLargestImagePixelValue();
       if (smallestValue < largestValue) {
+        smallestValue = Math.trunc(
+          smallestValue * pixel.getRescaleSlope() + pixel.getRescaleIntercept()
+        );
+        largestValue = Math.trunc(
+          largestValue * pixel.getRescaleSlope() + pixel.getRescaleIntercept()
+        );
+
         return new WindowLevel(
           Math.abs(largestValue - smallestValue),
           (largestValue + smallestValue) / 2.0,

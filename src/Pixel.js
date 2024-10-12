@@ -641,8 +641,7 @@ class Pixel {
    * @param {Pixel} pixel - Pixel object.
    */
   _applyPixelFixes() {
-    // For empty photometric interpretation, make a guess
-    // based on the samples per pixel value and transfer syntax
+    // Guess empty photometric interpretation based on the samples per pixel value and transfer syntax
     if (
       !this.photometricInterpretation &&
       this.samplesPerPixel &&
@@ -686,6 +685,20 @@ class Pixel {
       log.warn(
         `Empty photometric interpretation was found and was converted to ${this.photometricInterpretation}` +
           ` because samples per pixel is ${this.samplesPerPixel} and transfer syntax UID is ${this.transferSyntaxUid}`
+      );
+    }
+
+    // Adjust the scaling parameters when rescale slope is close to zero
+    const slopeThreshold = 0.1;
+    if (this.rescaleSlope && this.rescaleSlope < slopeThreshold) {
+      const slope = this.rescaleSlope;
+      const amp = 1.0 / this.rescaleSlope;
+      this.rescaleSlope *= amp;
+      this.rescaleIntercept *= amp;
+
+      log.warn(
+        `Scaling parameters were adjusted [slope: ${this.rescaleSlope}, intercept: ${this.rescaleIntercept}]` +
+          ` because rescale slope was close to zero [slope: ${slope}, threshold: ${slopeThreshold}]`
       );
     }
   }
