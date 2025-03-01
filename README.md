@@ -22,17 +22,11 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 	npm install
 	npm run build
 
-### Build native decoders WebAssembly (optional)
-
-	cd wasm
-	./build.sh
-[Emscripten SDK (emsdk)][emscripten-sdk-url] is required.
-
 ### Features
 - Renders single and multi-frame datasets with optional adjustment of window/level and color palette.
-- Decodes all major transfer syntaxes using a native WebAssembly module.
+- Decodes all major transfer syntaxes (using the [dcmjs-codecs][dcmjs-codecs-url] library).
 - Handles color and grayscale datasets, from 1 to 32 bits allocated, with signed, unsigned and float pixel values.
-- Outputs RGBA pixel arrays, suitable for use with HTML5 Canvas and WebGL, or other imaging libraries.
+- Outputs RGBA pixel arrays, suitable for use with HTML5 Canvas, WebGL and WebGPU, or other imaging libraries.
 - Provides a common bundle for both Node.js and browser.
 
 ### Supported Transfer Syntaxes
@@ -40,20 +34,18 @@ This library was inspired by the rendering pipelines of [fo-dicom][fo-dicom-url]
 - Explicit VR Little Endian (1.2.840.10008.1.2.1)
 - Deflated Explicit VR Little Endian (1.2.840.10008.1.2.1.99)
 - Explicit VR Big Endian (1.2.840.10008.1.2.2)
-- RLE Lossless (1.2.840.10008.1.2.5)\*
-- JPEG Baseline - Process 1 (1.2.840.10008.1.2.4.50)\*
-- JPEG Baseline - Processes 2 & 4 (1.2.840.10008.1.2.4.51)\*
-- JPEG Lossless, Nonhierarchical - Processes 14 (1.2.840.10008.1.2.4.57)\*
-- JPEG Lossless, Nonhierarchical, First-Order Prediction - Processes 14 [Selection Value 1] (1.2.840.10008.1.2.4.70)\*
-- JPEG-LS Lossless Image Compression (1.2.840.10008.1.2.4.80)\*
-- JPEG-LS Lossy Image Compression - Near-Lossless (1.2.840.10008.1.2.4.81)\*
-- JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.90)\*
-- JPEG 2000 Image Compression (1.2.840.10008.1.2.4.91)\*
-- High Throughput JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.201)\*
-- High Throughput JPEG 2000 with RPCL Options Image Compression - Lossless Only (1.2.840.10008.1.2.4.202)\*
+- RLE Lossless (1.2.840.10008.1.2.5)
+- JPEG Baseline - Process 1 (1.2.840.10008.1.2.4.50)
+- JPEG Baseline - Processes 2 & 4 (1.2.840.10008.1.2.4.51)
+- JPEG Lossless, Nonhierarchical - Processes 14 (1.2.840.10008.1.2.4.57)
+- JPEG Lossless, Nonhierarchical, First-Order Prediction - Processes 14 [Selection Value 1] (1.2.840.10008.1.2.4.70)
+- JPEG-LS Lossless Image Compression (1.2.840.10008.1.2.4.80)
+- JPEG-LS Lossy Image Compression - Near-Lossless (1.2.840.10008.1.2.4.81)
+- JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.90)
+- JPEG 2000 Image Compression (1.2.840.10008.1.2.4.91)
+- High Throughput JPEG 2000 Image Compression - Lossless Only (1.2.840.10008.1.2.4.201)
+- High Throughput JPEG 2000 with RPCL Options Image Compression - Lossless Only (1.2.840.10008.1.2.4.202)
 - High Throughput JPEG 2000 Image Compression (1.2.840.10008.1.2.4.203)\*
---------
-\*: Syntax is decoded using the native decoders WebAssembly.
 
 ### Usage
 
@@ -161,6 +153,7 @@ Please check the respecting [Wiki][dcmjs-imaging-wiki-examples-url] section for 
 
 ### Related libraries
 * [dcmjs-dimse][dcmjs-dimse-url] - DICOM DIMSE implementation for Node.js using dcmjs.
+* [dcmjs-codecs][dcmjs-codecs-url] - DICOM file and dataset transcoding for Node.js and browser using dcmjs.
 * [dcmjs-ecg][dcmjs-ecg-url] - DICOM electrocardiography (ECG) rendering for Node.js and browser using dcmjs.
 
 ### License
@@ -180,6 +173,7 @@ dcmjs-imaging is released under the MIT License.
 [fo-dicom-url]: https://github.com/fo-dicom/fo-dicom
 [mdcm-url]: https://github.com/fo-dicom/mdcm
 [dcmjs-dimse-url]: https://github.com/PantelisGeorgiadis/dcmjs-dimse
+[dcmjs-codecs-url]: https://github.com/PantelisGeorgiadis/dcmjs-codecs
 [dcmjs-ecg-url]: https://github.com/PantelisGeorgiadis/dcmjs-ecg
 
 [dcmjs-imaging-live-example-url]: https://unpkg.com/dcmjs-imaging@latest/build/index.html

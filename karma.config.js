@@ -1,10 +1,10 @@
 module.exports = function (config) {
   config.set({
-    frameworks: ['browserify', 'mocha', 'chai', 'sinon'],
+    frameworks: ['browserify', 'mocha', 'chai'],
     files: [
       'test/**/*.test.js',
       {
-        pattern: 'wasm/bin/native-pixel-decoder.wasm',
+        pattern: 'node_modules/dcmjs-codecs/build/dcmjs-native-codecs.wasm',
         included: false,
         watched: false,
         served: true,

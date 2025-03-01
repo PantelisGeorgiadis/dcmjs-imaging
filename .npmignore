@@ -4,14 +4,13 @@ coverage/
 examples/
 src/
 test/
-wasm/
 documentation/
 
 ## Root files
 .eslintrc.json
 .gitignore
-.gitattributes
 .jsdocrc.json
+.prettierrc.json
 index.test-d.ts
 karma.config.js
 webpack.config.js

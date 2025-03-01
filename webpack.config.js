@@ -7,7 +7,7 @@ const pkg = require('./package.json');
 const rootPath = process.cwd();
 const context = path.join(rootPath, 'src');
 const examplesPath = path.join(rootPath, 'examples');
-const wasmPath = path.join(rootPath, 'wasm');
+const nodeModulesPath = path.join(rootPath, 'node_modules');
 const outputPath = path.join(rootPath, 'build');
 const filename = path.parse(pkg.main).base;
 
@@ -71,8 +71,8 @@ module.exports = {
       patterns: [
         { from: path.join(examplesPath, 'index.html'), to: path.join(outputPath, 'index.html') },
         {
-          from: path.join(wasmPath, 'bin', 'native-pixel-decoder.wasm'),
-          to: path.join(outputPath, 'native-pixel-decoder.wasm'),
+          from: path.join(nodeModulesPath, 'dcmjs-codecs', 'build', 'dcmjs-native-codecs.wasm'),
+          to: path.join(outputPath, 'dcmjs-native-codecs.wasm'),
         },
       ],
     }),

@@ -19,6 +19,7 @@ describe('Histogram', () => {
     expect(histogram.getIdentifier()).to.be.eq('gray');
     expect(histogram.getMinimum()).to.be.eq(-random);
     expect(histogram.getMaximum()).to.be.eq(random);
+    expect(histogram.toString()).to.be.a('string');
   });
 
   it('should correctly return histogram values', () => {

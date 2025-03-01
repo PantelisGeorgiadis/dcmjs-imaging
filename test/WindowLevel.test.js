@@ -16,6 +16,7 @@ describe('WindowLevel', () => {
     expect(windowLevel.getWindow()).to.be.eq(300);
     expect(windowLevel.getLevel()).to.be.eq(400);
     expect(windowLevel.getDescription()).to.be.eq('DESCRIPTION2');
+    expect(windowLevel.toString()).to.be.a('string');
   });
 
   it('should correctly construct a WindowLevel from DicomImage', () => {

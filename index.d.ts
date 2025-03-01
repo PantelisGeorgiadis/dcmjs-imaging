@@ -124,6 +124,16 @@ declare class NativePixelDecoder {
     webAssemblyModulePathOrUrl?: string;
     logNativeDecodersMessages?: boolean;
   }): Promise<void>;
+
+  /**
+   * Checks if native pixel decoder module is initialized.
+   */
+  static isInitialized(): boolean;
+
+  /**
+   * Releases native pixel decoder module.
+   */
+  static release(): void;
 }
 
 declare class DicomImage {

@@ -8,7 +8,7 @@ class Lut {
    * Gets whether the LUT values are valid.
    * @method
    * @returns {boolean} Whether the LUT values are valid.
-   * @throws Error if isValid is not implemented.
+   * @throws {Error} If isValid is not implemented.
    */
   isValid() {
     throw new Error('isValid should be implemented');
@@ -18,7 +18,7 @@ class Lut {
    * Gets the minimum output value.
    * @method
    * @returns {number} Minimum output value.
-   * @throws Error if getMinimumOutputValue is not implemented.
+   * @throws {Error} If getMinimumOutputValue is not implemented.
    */
   getMinimumOutputValue() {
     throw new Error('getMinimumOutputValue should be implemented');
@@ -28,7 +28,7 @@ class Lut {
    * Gets the maximum output value.
    * @method
    * @returns {number} Maximum output value.
-   * @throws Error if getMaximumOutputValue is not implemented.
+   * @throws {Error} If getMaximumOutputValue is not implemented.
    */
   getMaximumOutputValue() {
     throw new Error('getMaximumOutputValue should be implemented');
@@ -37,7 +37,7 @@ class Lut {
   /**
    * Recalculates the LUT.
    * @method
-   * @throws Error if recalculate is not implemented.
+   * @throws {Error} If recalculate is not implemented.
    */
   recalculate() {
     throw new Error('recalculate should be implemented');
@@ -48,7 +48,7 @@ class Lut {
    * @method
    * @param {number} input - Input value.
    * @returns {number} LUT value.
-   * @throws Error if getValue is not implemented.
+   * @throws {Error} If getValue is not implemented.
    */
   // eslint-disable-next-line no-unused-vars
   getValue(input) {
@@ -457,7 +457,7 @@ class OutputLut extends Lut {
    * Sets the color palette.
    * @method
    * @param {Array<number>} colorPalette - Array of color palette ARGB values.
-   * @throws Error if color palette array has not 256 entries.
+   * @throws {Error} If color palette array has not 256 entries.
    */
   setColorPalette(colorPalette) {
     if (colorPalette === undefined || !Array.isArray(colorPalette) || colorPalette.length !== 256) {
@@ -536,7 +536,7 @@ class CompositeLut extends Lut {
    * Adds a LUT.
    * @method
    * @param {Lut} lut - LUT.
-   * @throws Error if provided lut is not of type LUT.
+   * @throws {Error} If provided lut is not of type LUT.
    */
   addLut(lut) {
     if (!(lut instanceof Lut)) {
@@ -805,7 +805,7 @@ class LutPipeline {
    * Gets LUT.
    * @method
    * @returns {Lut} LUT.
-   * @throws Error if getLut is not implemented.
+   * @throws {Error} If getLut is not implemented.
    */
   getLut() {
     throw new Error('getLut should be implemented');
@@ -820,7 +820,7 @@ class LutPipeline {
    * @param {number} frame - Frame index.
    * @param {StandardColorPalette} [colorPalette] - Color palette.
    * @returns {LutPipeline} LUT pipeline object.
-   * @throws Error if LUT pipeline photometric interpretation is not supported.
+   * @throws {Error} If LUT pipeline photometric interpretation is not supported.
    */
   static create(pixel, windowLevel, frame, colorPalette) {
     const photometricInterpretation = pixel.getPhotometricInterpretation();
@@ -875,7 +875,7 @@ class LutPipeline {
    * @param {Pixel} pixel - Pixel object.
    * @param {number} [frame] - Frame index.
    * @returns {WindowLevel} WindowLevel object.
-   * @throws Error if bits stored pixel data value is not supported.
+   * @throws {Error} If bits stored pixel data value is not supported.
    */
   static _calculateWindowLevel(pixel, frame) {
     // Smallest/largest pixel tag values

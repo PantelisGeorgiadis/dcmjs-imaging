@@ -57,6 +57,7 @@ describe('DicomImage', () => {
     expect(image3.getHeight()).to.be.eq(rows);
     expect(image3.getWidth()).to.be.eq(columns);
     expect(image3.getNumberOfFrames()).to.be.eq(numberOfFrames);
+    expect(image3.toString()).to.be.a('string');
   });
 
   it('should throw for not renderable transfer syntax UID', () => {

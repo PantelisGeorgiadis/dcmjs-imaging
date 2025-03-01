@@ -380,7 +380,7 @@ class DicomImage {
    * @param {boolean} [opts.calculateHistograms] - Flag to indicate whether to calculate histograms.
    * @param {StandardColorPalette} [opts.colorPalette] - Color palette to use.
    * @returns {RenderingResult} Rendering result object.
-   * @throws Error if transfer syntax cannot be rendered, requested frame is out of range or
+   * @throws {Error} If transfer syntax cannot be rendered, requested frame is out of range or
    * optionally provided window level is not of type WindowLevel.
    */
   _render(opts) {
@@ -496,7 +496,7 @@ class DicomImage {
    * @method
    * @private
    * @returns {RenderingResult} Rendering result object.
-   * @throws Error if dataset does not contain an IconImageSequence,
+   * @throws {Error} If dataset does not contain an IconImageSequence,
    * photometric interpretation is not valid and transfer syntax cannot be rendered.
    */
   _renderIcon() {

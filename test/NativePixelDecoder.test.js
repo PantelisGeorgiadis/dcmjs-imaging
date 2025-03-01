@@ -9,10 +9,7 @@ const WindowLevel = require('./../src/WindowLevel');
 
 const { createImageFromPixelData } = require('./utils');
 
-const fs = require('fs');
-const path = require('path');
 const chai = require('chai');
-const sinon = require('sinon');
 const expect = chai.expect;
 
 describe('Uninitialized NativePixelDecoder', () => {
@@ -34,28 +31,25 @@ describe('Uninitialized NativePixelDecoder', () => {
 
 describe('NativePixelDecoder', () => {
   before(async () => {
-    sinon.stub(NativePixelDecoder, '_getWebAssemblyBytes').callsFake(async () => {
-      const isNodeJs = !!(
-        typeof process !== 'undefined' &&
-        process.versions &&
-        process.versions.node
-      );
-      if (isNodeJs) {
-        const wasmPath = path.join(process.cwd(), 'wasm', 'bin', 'native-pixel-decoder.wasm');
-        const buffer = fs.readFileSync(wasmPath);
-
-        return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-      }
-      // Karma tests
-      const response = await fetch('base/wasm/bin/native-pixel-decoder.wasm');
-      const responseArrayBuffer = await response.arrayBuffer();
-
-      return responseArrayBuffer;
+    const isNodeJs = !!(
+      typeof process !== 'undefined' &&
+      process.versions &&
+      process.versions.node
+    );
+    const webAssemblyModulePathOrUrl = !isNodeJs
+      ? 'base/node_modules/dcmjs-codecs/build/dcmjs-native-codecs.wasm'
+      : undefined;
+    await NativePixelDecoder.initializeAsync({
+      webAssemblyModulePathOrUrl,
+      logNativeDecodersMessages: true,
     });
-    await NativePixelDecoder.initializeAsync({ logNativeDecodersMessages: true });
   });
   after(() => {
-    sinon.restore();
+    NativePixelDecoder.release();
+  });
+
+  it('should correctly return initialization status', () => {
+    expect(NativePixelDecoder.isInitialized()).to.be.eq(true);
   });
 
   it('should correctly decode and render basic RleLossless', () => {

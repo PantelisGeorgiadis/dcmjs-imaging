@@ -217,7 +217,7 @@ class ColorPalette {
    * @static
    * @param {Pixel} pixel - Pixel object.
    * @returns {Array<number>} Array of color palette ARGB values.
-   * @throws Error if palette color LUT is missing.
+   * @throws {Error} If palette color LUT is missing.
    */
   static getColorPalettePaletteColor(pixel) {
     let size = 0;
@@ -278,7 +278,7 @@ class ColorPalette {
    * @static
    * @param {StandardColorPalette} palette - Standard color palette.
    * @returns {Array<number>} Array of color palette ARGB values.
-   * @throws Error if standard color palette is not found.
+   * @throws {Error} If standard color palette is not found.
    */
   static getColorPaletteStandard(palette) {
     const standardColorPalette = StandardColorPalettes.find((p) => p.palette === palette);

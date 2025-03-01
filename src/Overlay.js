@@ -290,6 +290,7 @@ class G60xxOverlay extends Overlay {
   /**
    * Gets element value.
    * @method
+   * @private
    * @param {Object} elements - Elements.
    * @param {string} tag - Element tag.
    * @returns {string|undefined} Element value or undefined if element doesn't exist.

@@ -134,6 +134,7 @@ describe('Pixel', () => {
       new Uint8Array(bluePaletteColorLookupTableData[0])
     );
     expect(new Uint8Array(pixel.getPixelData()[0])).to.deep.equal(new Uint8Array(pixelData[0]));
+    expect(pixel.toString()).to.be.a('string');
   });
 
   it('should throw for missing rendering parameters', () => {

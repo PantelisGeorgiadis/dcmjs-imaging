@@ -10,6 +10,7 @@ expectType<string>(version);
 
 // NativePixelDecoder
 expectError(NativePixelDecoder.initializeAsync('string'));
+expectType<boolean>(NativePixelDecoder.isInitialized());
 expectType<Promise<void>>(
   NativePixelDecoder.initializeAsync({
     logNativeDecodersMessages: true,
@@ -17,6 +18,7 @@ expectType<Promise<void>>(
   })
 );
 expectType<Promise<void>>(NativePixelDecoder.initializeAsync());
+expectType<void>(NativePixelDecoder.release());
 
 // WindowLevel
 expectError(new WindowLevel());
