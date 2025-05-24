@@ -9,6 +9,9 @@ prefix.apply(log, {
   format(level, name, timestamp) {
     return `${timestamp} -- ${level.toUpperCase()} --`;
   },
+  timestampFormatter(timestamp) {
+    return timestamp.toISOString();
+  },
 });
 
 //#region Exports
