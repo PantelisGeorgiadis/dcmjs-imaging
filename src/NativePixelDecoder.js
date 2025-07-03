@@ -15,14 +15,16 @@ class NativePixelDecoder {
    * to log native pixel decoder informational messages.
    */
   static async initializeAsync(opts) {
-    opts = opts || {};
-    this.logNativeDecodersMessages = opts.logNativeDecodersMessages || false;
-    this.webAssemblyModulePathOrUrl = opts.webAssemblyModulePathOrUrl;
+    if (NativeCodecs.isInitialized()) {
+      return; // Already initialized
+    }
 
+    opts = opts || {};
+    // Map old parameter name to new one for backward compatibility
     await NativeCodecs.initializeAsync({
-      webAssemblyModulePathOrUrl: this.webAssemblyModulePathOrUrl,
-      logCodecsInfo: this.logNativeDecodersMessages,
-      logCodecsTrace: this.logNativeDecodersMessages,
+      webAssemblyModulePathOrUrl: opts.webAssemblyModulePathOrUrl,
+      logCodecsInfo: opts.logNativeEncodersMessages || false,
+      logCodecsTrace: opts.logNativeEncodersMessages || false,
     });
   }
 

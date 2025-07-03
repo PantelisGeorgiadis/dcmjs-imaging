@@ -7,6 +7,7 @@ const {
 } = require('./Constants');
 const DicomImage = require('./DicomImage');
 const NativePixelDecoder = require('./NativePixelDecoder');
+const NativePixelEncoder = require('./NativePixelEncoder');
 const WindowLevel = require('./WindowLevel');
 const Histogram = require('./Histogram');
 const log = require('./log');
@@ -28,6 +29,7 @@ const DcmjsImaging = {
   Histogram,
   log,
   NativePixelDecoder,
+  NativePixelEncoder,
   version,
   WindowLevel,
 };
