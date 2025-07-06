@@ -598,7 +598,7 @@ class Pixel {
    * Gets the frame fragments data.
    * @method
    * @private
-   * @param {number} pixelBuffers - Pixel data buffers.
+   * @param {Array<ArrayBuffer>} pixelBuffers - Pixel data buffers.
    * @param {number} frame - Frame index.
    * @returns {Uint8Array} Frame data as an array of unsigned byte values.
    * @throws {Error} If there are no fragmented pixel data or requested frame
@@ -632,6 +632,59 @@ class Pixel {
     }
 
     throw new Error('Multiple fragments per frame is not yet implemented');
+  }
+
+  /**
+   * Sets the frame fragments data.
+   * @method
+   * @private
+   * @param {Array<ArrayBuffer>} pixelBuffers - Pixel data buffers.
+   * @param {number} frame - Frame index.
+   * @param {Uint8Array} frameData - Frame data as an array of unsigned byte values.
+   * @throws {Error} If there are no fragmented pixel data, requested frame
+   * is larger or equal to the pixel fragments number, or frame data is invalid.
+   */
+  _setFrameFragments(pixelBuffers, frame, frameData) {
+    if (pixelBuffers.length === 0) {
+      throw new Error('No fragmented pixel data');
+    }
+    if (frame >= pixelBuffers.length) {
+      throw new Error(
+        `Requested frame is larger or equal to the pixel fragments number [frame: (${frame}), fragments: ${pixelBuffers.length}]`
+      );
+    }
+    if (!frameData || !(frameData instanceof Uint8Array)) {
+      throw new Error('Frame data must be a Uint8Array');
+    }
+
+    if (this.getNumberOfFrames() === 1) {
+      // For single frame, we need to split the frame data back into fragments
+      // This is complex as we need to reverse the concatenation process
+      // For now, replace the first non-empty buffer with the frame data
+      for (let i = 0; i < pixelBuffers.length; i++) {
+        if (pixelBuffers[i]) {
+          pixelBuffers[i] = frameData.buffer.slice(
+            frameData.byteOffset,
+            frameData.byteOffset + frameData.byteLength
+          );
+          // Clear other buffers to avoid duplication
+          for (let j = i + 1; j < pixelBuffers.length; j++) {
+            if (pixelBuffers[j]) {
+              pixelBuffers[j] = new ArrayBuffer(0);
+            }
+          }
+          break;
+        }
+      }
+    } else if (pixelBuffers.length === this.getNumberOfFrames()) {
+      // One buffer per frame - direct replacement
+      pixelBuffers[frame] = frameData.buffer.slice(
+        frameData.byteOffset,
+        frameData.byteOffset + frameData.byteLength
+      );
+    } else {
+      throw new Error('Multiple fragments per frame is not yet implemented');
+    }
   }
 
   /**
