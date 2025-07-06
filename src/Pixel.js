@@ -756,7 +756,9 @@ class Pixel {
 
       if (Array.isArray(pixelBuffers)) {
         // Find the appropriate buffer and update it
-        const targetBuffer = pixelBuffers.find((buffer) => buffer && buffer.byteLength > frameOffset);
+        const targetBuffer = pixelBuffers.find(
+          (buffer) => buffer && buffer.byteLength > frameOffset
+        );
         if (targetBuffer) {
           const pixelBuffer = new Uint8Array(targetBuffer);
           pixelBuffer.set(processedFrameData, frameOffset);
@@ -1376,6 +1378,38 @@ class SingleBitPixelPipeline extends GrayscalePixelPipeline {
       }
       const bitValue = (byteValue >>> bitIndex) & 0x01;
       output[i] = bitValue ? 1 : 0;
+    }
+
+    return output;
+  }
+
+  /**
+   * Shrinks bytes to image bits.
+   * @method
+   * @static
+   * @private
+   * @param {number} width - Image width.
+   * @param {number} height - Image height.
+   * @param {Uint8Array} data - Pixel data (bytes containing 0 or 1).
+   * @returns {Uint8Array} Packed bits.
+   * @throws {Error} If an array item is not 0 or 1.
+   */
+  static _shrinkBytes(width, height, data) {
+    const totalPixels = width * height;
+    const outputSize = Math.ceil(totalPixels / 8);
+    const output = new Uint8Array(outputSize);
+
+    for (let i = 0; i < totalPixels; i++) {
+      const pixelValue = data[i];
+      if (pixelValue !== 0 && pixelValue !== 1) {
+        throw new Error('Array item must be 0 or 1');
+      }
+
+      if (pixelValue === 1) {
+        const byteIndex = Math.floor(i / 8);
+        const bitIndex = i - 8 * byteIndex;
+        output[byteIndex] |= 1 << bitIndex;
+      }
     }
 
     return output;

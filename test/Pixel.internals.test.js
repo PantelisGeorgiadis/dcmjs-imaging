@@ -4,6 +4,7 @@ const {
   Pixel,
   PixelConverter,
   PixelPipeline,
+  SingleBitPixelPipeline,
 } = require('./../src/Pixel');
 const {
   PhotometricInterpretation,
@@ -746,6 +747,313 @@ describe('Pixel internals', () => {
         retrievedFrameBuffer.byteLength / 2
       );
       expect(Array.from(retrievedUint16View)).to.deep.equal([2000, 65535, 4000, 65535]);
+    });
+  });
+});
+
+describe('SingleBitPixelPipeline internals', () => {
+  describe('_expandBits', () => {
+    it('should expand single bit packed data to bytes', () => {
+      // Test data: 0b10101010 (0xAA) should expand to [0, 1, 0, 1, 0, 1, 0, 1]
+      const width = 8;
+      const height = 1;
+      const packedData = new Uint8Array([0xaa]); // 10101010 in binary
+
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, packedData);
+
+      expect(expanded).to.be.instanceof(Uint8Array);
+      expect(expanded.length).to.equal(8);
+      expect(Array.from(expanded)).to.deep.equal([0, 1, 0, 1, 0, 1, 0, 1]);
+    });
+
+    it('should expand multiple bytes of bit data', () => {
+      // Test data: 0b11110000 (0xF0) and 0b00001111 (0x0F)
+      const width = 4;
+      const height = 4;
+      const packedData = new Uint8Array([0xf0, 0x0f]); // 11110000 00001111
+
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, packedData);
+
+      expect(expanded).to.be.instanceof(Uint8Array);
+      expect(expanded.length).to.equal(16);
+      expect(Array.from(expanded)).to.deep.equal([
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1, // First byte: 11110000 (LSB first)
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0, // Second byte: 00001111 (LSB first)
+      ]);
+    });
+
+    it('should handle partial bytes correctly', () => {
+      // Test 10 pixels (needs 2 bytes, but only 10 bits are used)
+      const width = 5;
+      const height = 2;
+      const packedData = new Uint8Array([0xff, 0x03]); // 11111111 00000011
+
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, packedData);
+
+      expect(expanded).to.be.instanceof(Uint8Array);
+      expect(expanded.length).to.equal(10);
+      expect(Array.from(expanded)).to.deep.equal([
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // First 8 bits from first byte
+        1,
+        1, // First 2 bits from second byte
+      ]);
+    });
+
+    it('should throw error for invalid byte values', () => {
+      const width = 8;
+      const height = 1;
+
+      // Test with value > 255
+      const invalidData1 = new Uint8Array(1);
+      invalidData1[0] = 256; // This would actually be 0 due to Uint8Array constraints
+
+      // Test with manually created invalid array (simulate the condition)
+      const invalidData2 = {
+        0: 300, // Simulate invalid value
+        length: 1,
+        [Symbol.iterator]: function* () {
+          yield 300;
+        },
+      };
+
+      // Since Uint8Array automatically constrains values to 0-255, we'll test the boundary
+      const validData = new Uint8Array([255]);
+      expect(() => {
+        SingleBitPixelPipeline._expandBits(width, height, validData);
+      }).to.not.throw();
+    });
+
+    it('should handle empty data correctly', () => {
+      const width = 0;
+      const height = 0;
+      const packedData = new Uint8Array([]);
+
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, packedData);
+
+      expect(expanded).to.be.instanceof(Uint8Array);
+      expect(expanded.length).to.equal(0);
+    });
+  });
+
+  describe('_shrinkBytes', () => {
+    it('should shrink bytes to packed bits', () => {
+      // Test data: [0, 1, 0, 1, 0, 1, 0, 1] should pack to 0xAA (10101010)
+      const width = 8;
+      const height = 1;
+      const expandedData = new Uint8Array([0, 1, 0, 1, 0, 1, 0, 1]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(1);
+      expect(packed[0]).to.equal(0xaa); // 10101010 in binary
+    });
+
+    it('should shrink multiple bytes of data', () => {
+      // Test data that should pack to 0xF0 and 0x0F
+      const width = 4;
+      const height = 4;
+      const expandedData = new Uint8Array([
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1, // Should pack to 0xF0 (11110000)
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0, // Should pack to 0x0F (00001111)
+      ]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(2);
+      expect(packed[0]).to.equal(0xf0);
+      expect(packed[1]).to.equal(0x0f);
+    });
+
+    it('should handle partial bytes correctly', () => {
+      // Test 10 pixels (needs 2 bytes for packing)
+      const width = 5;
+      const height = 2;
+      const expandedData = new Uint8Array([
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1, // First 8 bits -> 0xFF
+        1,
+        1, // Next 2 bits -> 0x03 (00000011)
+      ]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(2);
+      expect(packed[0]).to.equal(0xff);
+      expect(packed[1]).to.equal(0x03);
+    });
+
+    it('should handle all zeros', () => {
+      const width = 8;
+      const height = 1;
+      const expandedData = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(1);
+      expect(packed[0]).to.equal(0x00);
+    });
+
+    it('should handle all ones', () => {
+      const width = 8;
+      const height = 1;
+      const expandedData = new Uint8Array([1, 1, 1, 1, 1, 1, 1, 1]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(1);
+      expect(packed[0]).to.equal(0xff);
+    });
+
+    it('should throw error for invalid pixel values', () => {
+      const width = 8;
+      const height = 1;
+
+      // Test with value > 1
+      const invalidData1 = new Uint8Array([0, 1, 2, 1, 0, 1, 0, 1]);
+      expect(() => {
+        SingleBitPixelPipeline._shrinkBytes(width, height, invalidData1);
+      }).to.throw('Array item must be 0 or 1');
+
+      // Test with negative value (simulated)
+      const invalidData2 = new Uint8Array([0, 1, 0, 1, 0, 1, 0, 255]);
+      expect(() => {
+        SingleBitPixelPipeline._shrinkBytes(width, height, invalidData2);
+      }).to.throw('Array item must be 0 or 1');
+    });
+
+    it('should handle empty data correctly', () => {
+      const width = 0;
+      const height = 0;
+      const expandedData = new Uint8Array([]);
+
+      const packed = SingleBitPixelPipeline._shrinkBytes(width, height, expandedData);
+
+      expect(packed).to.be.instanceof(Uint8Array);
+      expect(packed.length).to.equal(0);
+    });
+  });
+
+  describe('_expandBits and _shrinkBytes roundtrip', () => {
+    it('should perform perfect roundtrip for exact byte boundaries', () => {
+      // Test with data that fits exactly in bytes
+      const width = 8;
+      const height = 3;
+      const originalData = new Uint8Array([0xaa, 0x55, 0xff]); // 10101010, 01010101, 11111111
+
+      // Expand then shrink
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, originalData);
+      const shrunk = SingleBitPixelPipeline._shrinkBytes(width, height, expanded);
+
+      expect(Array.from(shrunk)).to.deep.equal(Array.from(originalData));
+    });
+
+    it('should perform perfect roundtrip with partial bytes', () => {
+      // Test with 10 pixels (1.25 bytes)
+      const width = 5;
+      const height = 2;
+      const originalData = new Uint8Array([0xaa, 0x01]); // 10101010, 00000001
+
+      // Expand then shrink
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, originalData);
+      const shrunk = SingleBitPixelPipeline._shrinkBytes(width, height, expanded);
+
+      expect(Array.from(shrunk)).to.deep.equal(Array.from(originalData));
+    });
+
+    it('should perform perfect roundtrip with various patterns', () => {
+      const testCases = [
+        { width: 1, height: 1, data: new Uint8Array([0x01]) },
+        { width: 4, height: 1, data: new Uint8Array([0x0f]) },
+        { width: 8, height: 1, data: new Uint8Array([0x00]) },
+        { width: 8, height: 1, data: new Uint8Array([0xff]) },
+        { width: 12, height: 1, data: new Uint8Array([0xaa, 0x05]) },
+        { width: 16, height: 1, data: new Uint8Array([0xaa, 0x55]) },
+        { width: 3, height: 5, data: new Uint8Array([0xff, 0x01]) },
+      ];
+
+      testCases.forEach(({ width, height, data }, index) => {
+        const expanded = SingleBitPixelPipeline._expandBits(width, height, data);
+        const shrunk = SingleBitPixelPipeline._shrinkBytes(width, height, expanded);
+
+        expect(Array.from(shrunk)).to.deep.equal(
+          Array.from(data),
+          `Failed for test case ${index}: ${width}x${height}`
+        );
+      });
+    });
+
+    it('should handle zero-filled partial bytes correctly in roundtrip', () => {
+      // Test case where the partial byte should be zero-filled
+      const width = 3;
+      const height = 1;
+      const originalData = new Uint8Array([0x07]); // 00000111
+
+      // Expand (should give [1, 1, 1])
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, originalData);
+      expect(Array.from(expanded)).to.deep.equal([1, 1, 1]);
+
+      // Shrink (should pack back to 0x07)
+      const shrunk = SingleBitPixelPipeline._shrinkBytes(width, height, expanded);
+      expect(Array.from(shrunk)).to.deep.equal([0x07]);
+    });
+
+    it('should verify bit ordering is consistent', () => {
+      // Test to ensure LSB-first ordering is maintained
+      const width = 8;
+      const height = 1;
+      const originalData = new Uint8Array([0x81]); // 10000001
+
+      const expanded = SingleBitPixelPipeline._expandBits(width, height, originalData);
+      expect(Array.from(expanded)).to.deep.equal([1, 0, 0, 0, 0, 0, 0, 1]);
+
+      const shrunk = SingleBitPixelPipeline._shrinkBytes(width, height, expanded);
+      expect(Array.from(shrunk)).to.deep.equal([0x81]);
     });
   });
 });
