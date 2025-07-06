@@ -584,7 +584,6 @@ class Pixel {
       );
     }
 
-    const pixelBuffers = this.getPixelData();
     if (
       this.getTransferSyntaxUid() === TransferSyntax.ImplicitVRLittleEndian ||
       this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRLittleEndian ||
@@ -596,7 +595,7 @@ class Pixel {
 
       // Take the first buffer from pixel buffers and extract the current frame data
       let pixelBuffer = new Uint8Array(
-        Array.isArray(pixelBuffers) ? pixelBuffers.find((o) => o) : pixelBuffers
+        Array.isArray(pixelData) ? pixelData.find((o) => o) : pixelData
       );
       const framePixelBuffer = pixelBuffer.slice(frameOffset, frameOffset + frameSize);
 
@@ -633,7 +632,7 @@ class Pixel {
 
       return framePixelBuffer;
     } else {
-      const frameFragmentsData = this._getFrameFragments(pixelBuffers, frame);
+      const frameFragmentsData = this._getFrameFragments(pixelData, frame);
       if (this.getTransferSyntaxUid() === TransferSyntax.RleLossless) {
         return NativePixelDecoder.decodeRle(this, frameFragmentsData);
       } else if (
