@@ -359,6 +359,16 @@ class Pixel {
   }
 
   /**
+   * Sets the pixel data from an array of unsigned byte values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Uint8Array} data - Pixel data as an array of unsigned byte values.
+   */
+  setFrameDataU8(frame, data) {
+    this._setFrameBuffer(frame, data);
+  }
+
+  /**
    * Gets the pixel data as an array of unsigned short values.
    * @method
    * @param {number} frame - Frame index.
@@ -372,6 +382,17 @@ class Pixel {
       frameBuffer.byteOffset,
       frameBuffer.byteLength / Uint16Array.BYTES_PER_ELEMENT
     );
+  }
+
+  /**
+   * Sets the pixel data from an array of unsigned short values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Uint16Array} data - Pixel data as an array of unsigned short values.
+   */
+  setFrameDataU16(frame, data) {
+    const frameBuffer = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    this._setFrameBuffer(frame, frameBuffer);
   }
 
   /**
@@ -397,6 +418,28 @@ class Pixel {
   }
 
   /**
+   * Sets the pixel data from an array of signed short values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Int16Array} data - Pixel data as an array of signed short values.
+   */
+  setFrameDataS16(frame, data) {
+    const s16 = new Int16Array(data);
+
+    if (this.getBitsStored() !== 16) {
+      const shiftLeft = this.getBitsAllocated() - this.getBitsStored();
+      const shiftRight = this.getBitsAllocated() - this.getHighBit() - 1;
+      for (let i = 0; i < s16.length; i++) {
+        s16[i] <<= shiftLeft;
+        s16[i] >>= shiftRight;
+      }
+    }
+
+    const u16 = new Uint16Array(s16.buffer, s16.byteOffset, s16.length);
+    this.setFrameDataU16(frame, u16);
+  }
+
+  /**
    * Gets the pixel data as an array of unsigned integer values.
    * @method
    * @param {number} frame - Frame index.
@@ -413,6 +456,17 @@ class Pixel {
   }
 
   /**
+   * Sets the pixel data from an array of unsigned integer values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Uint32Array} data - Pixel data as an array of unsigned integer values.
+   */
+  setFrameDataU32(frame, data) {
+    const frameBuffer = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    this._setFrameBuffer(frame, frameBuffer);
+  }
+
+  /**
    * Gets the pixel data as an array of signed integer values.
    * @method
    * @param {number} frame - Frame index.
@@ -423,6 +477,17 @@ class Pixel {
     const s32 = new Int32Array(u32);
 
     return s32;
+  }
+
+  /**
+   * Sets the pixel data from an array of signed integer values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Int32Array} data - Pixel data as an array of signed integer values.
+   */
+  setFrameDataS32(frame, data) {
+    const u32 = new Uint32Array(data.buffer, data.byteOffset, data.length);
+    this.setFrameDataU32(frame, u32);
   }
 
   /**
@@ -439,6 +504,17 @@ class Pixel {
       frameBuffer.byteOffset,
       frameBuffer.byteLength / Float32Array.BYTES_PER_ELEMENT
     );
+  }
+
+  /**
+   * Sets the pixel data from an array of float values.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Float32Array} data - Pixel data as an array of float values.
+   */
+  setFrameDataF32(frame, data) {
+    const frameBuffer = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    this._setFrameBuffer(frame, frameBuffer);
   }
 
   /**
