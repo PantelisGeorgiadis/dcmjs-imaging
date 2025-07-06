@@ -6,6 +6,7 @@ const {
 } = require('./Constants');
 const Histogram = require('./Histogram');
 const NativePixelDecoder = require('./NativePixelDecoder');
+const NativePixelEncoder = require('./NativePixelEncoder');
 const log = require('./log');
 
 //#region Pixel
@@ -487,7 +488,8 @@ class Pixel {
     if (frame < 0 || frame >= this.getNumberOfFrames()) {
       throw new Error(`Requested frame is out of range [${frame}]`);
     }
-    if (!this.getPixelData()) {
+    const pixelData = this.getPixelData();
+    if (!pixelData || pixelData.length === 0) {
       throw new Error('Could not extract pixel data');
     }
     if (!this.getWidth() || !this.getHeight()) {
@@ -591,6 +593,157 @@ class Pixel {
       throw new Error(
         `Transfer syntax cannot be currently decoded [${this.getTransferSyntaxUid()}]`
       );
+    }
+  }
+
+  /**
+   * Sets the frame data of the desired frame from an array of unsigned byte values.
+   * @method
+   * @private
+   * @param {number} frame - Frame index.
+   * @param {Uint8Array} frameData - Frame data as an array of unsigned byte values.
+   * @throws {Error} If requested frame is out of range, pixel data could not be set,
+   * width/height/bits allocated/stored/photometric interpretation has an invalid value or
+   * transfer syntax cannot be currently encoded.
+   */
+  _setFrameBuffer(frame, frameData) {
+    if (frame < 0 || frame >= this.getNumberOfFrames()) {
+      throw new Error(`Requested frame is out of range [${frame}]`);
+    }
+    if (!frameData || !(frameData instanceof Uint8Array)) {
+      throw new Error('Frame data must be a Uint8Array');
+    }
+    if (!this.getWidth() || !this.getHeight()) {
+      throw new Error(
+        `Width/height has an invalid value [w: ${this.getWidth()}, h: ${this.getHeight()}]`
+      );
+    }
+    if (!this.getBitsAllocated() || !this.getBitsStored()) {
+      throw new Error(
+        `Bits allocated/stored has an invalid value [allocated: ${this.getBitsAllocated()}, stored: ${this.getBitsStored()}]`
+      );
+    }
+    if (!this.getPhotometricInterpretation()) {
+      throw new Error(
+        `Photometric interpretation has an invalid value [${this.getPhotometricInterpretation()}]`
+      );
+    }
+
+    const pixelBuffers = this.getPixelData();
+    if (!pixelBuffers) {
+      throw new Error('Could not access pixel data');
+    }
+
+    if (
+      this.getTransferSyntaxUid() === TransferSyntax.ImplicitVRLittleEndian ||
+      this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRLittleEndian ||
+      this.getTransferSyntaxUid() === TransferSyntax.DeflatedExplicitVRLittleEndian ||
+      this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian
+    ) {
+      // For uncompressed transfer syntaxes, we need to handle endianness swapping
+      // before placing the data back into the pixel buffers
+      let processedFrameData = new Uint8Array(frameData);
+
+      // Swap endianness if necessary (reverse of what _getFrameBuffer does)
+      if (this.getTransferSyntaxUid() === TransferSyntax.ExplicitVRBigEndian) {
+        if (this.getBitsAllocated() > 8 && this.getBitsAllocated() <= 16) {
+          for (let i = 0; i < processedFrameData.length; i += 2) {
+            const holder = processedFrameData[i];
+            processedFrameData[i] = processedFrameData[i + 1];
+            processedFrameData[i + 1] = holder;
+          }
+        } else if (this.getBitsAllocated() === 32) {
+          if (this.hasFloatPixelData()) {
+            for (let i = 0; i < processedFrameData.length; i += 4) {
+              let holder = processedFrameData[i];
+              processedFrameData[i] = processedFrameData[i + 3];
+              processedFrameData[i + 3] = holder;
+              holder = processedFrameData[i + 1];
+              processedFrameData[i + 1] = processedFrameData[i + 2];
+              processedFrameData[i + 2] = holder;
+            }
+          } else {
+            for (let i = 0; i < processedFrameData.length; i += 4) {
+              let holder = processedFrameData[i];
+              processedFrameData[i] = processedFrameData[i + 1];
+              processedFrameData[i + 1] = holder;
+              holder = processedFrameData[i + 2];
+              processedFrameData[i + 2] = processedFrameData[i + 3];
+              processedFrameData[i + 3] = holder;
+            }
+          }
+        }
+      }
+
+      // Place the processed frame data back into the pixel buffers
+      const frameSize = this.getUncompressedFrameSize();
+      const frameOffset = frameSize * frame;
+
+      if (Array.isArray(pixelBuffers)) {
+        // Find the appropriate buffer and update it
+        const targetBuffer = pixelBuffers.find((buffer) => buffer && buffer.byteLength > frameOffset);
+        if (targetBuffer) {
+          const pixelBuffer = new Uint8Array(targetBuffer);
+          pixelBuffer.set(processedFrameData, frameOffset);
+        } else {
+          throw new Error('Could not find appropriate pixel buffer for frame data');
+        }
+      } else {
+        // Single buffer case
+        const pixelBuffer = new Uint8Array(pixelBuffers);
+        pixelBuffer.set(processedFrameData, frameOffset);
+      }
+    } else {
+      // For compressed transfer syntaxes, we need to encode the frame data
+      let encodedFrameData;
+
+      if (this.getTransferSyntaxUid() === TransferSyntax.RleLossless) {
+        encodedFrameData = NativePixelEncoder.encodeRle(this, frameData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess1 ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegBaselineProcess2_4
+      ) {
+        encodedFrameData = NativePixelEncoder.encodeJpeg(this, frameData, {
+          quality: 95,
+          lossless: false,
+        });
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14 ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLosslessProcess14V1
+      ) {
+        encodedFrameData = NativePixelEncoder.encodeJpeg(this, frameData, {
+          lossless: true,
+        });
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLsLossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegLsLossy
+      ) {
+        encodedFrameData = NativePixelEncoder.encodeJpegLs(this, frameData, {
+          nearLossless: this.getTransferSyntaxUid() === TransferSyntax.JpegLsLossless ? 0 : 1,
+        });
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossy
+      ) {
+        encodedFrameData = NativePixelEncoder.encodeJpeg2000(this, frameData, {
+          lossless: this.getTransferSyntaxUid() === TransferSyntax.Jpeg2000Lossless,
+        });
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000LosslessRpcl ||
+        this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossy
+      ) {
+        encodedFrameData = NativePixelEncoder.encodeJpeg2000(this, frameData, {
+          lossless: this.getTransferSyntaxUid() !== TransferSyntax.HtJpeg2000Lossy,
+        });
+      } else {
+        throw new Error(
+          `Transfer syntax cannot be currently encoded [${this.getTransferSyntaxUid()}]`
+        );
+      }
+
+      // Use _setFrameFragments to place the encoded data back into the pixel buffers
+      this._setFrameFragments(pixelBuffers, frame, encodedFrameData);
     }
   }
 
