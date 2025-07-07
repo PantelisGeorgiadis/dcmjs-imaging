@@ -6,6 +6,7 @@ const {
   TransferSyntax,
 } = require('./Constants');
 const DicomImage = require('./DicomImage');
+const { Pixel } = require('./Pixel');
 const NativePixelDecoder = require('./NativePixelDecoder');
 const NativePixelEncoder = require('./NativePixelEncoder');
 const WindowLevel = require('./WindowLevel');
@@ -28,6 +29,7 @@ const DcmjsImaging = {
   DicomImage,
   Histogram,
   log,
+  Pixel,
   NativePixelDecoder,
   NativePixelEncoder,
   version,

@@ -593,11 +593,10 @@ class Pixel {
       photometricInterpretation === PhotometricInterpretation.PaletteColor
     ) {
       if (this.getBitsStored() === 1) {
-        this.setFrameDataU8(frame, SingleBitPixelPipeline._shrinkBytes(
-          this.getWidth(),
-          this.getHeight(),
-          data
-        ));
+        this.setFrameDataU8(
+          frame,
+          SingleBitPixelPipeline._shrinkBytes(this.getWidth(), this.getHeight(), data)
+        );
       } else if (
         this.getBitsAllocated() === 8 &&
         this.getHighBit() === 7 &&
@@ -626,11 +625,9 @@ class Pixel {
     ) {
       if (this.getPlanarConfiguration() === PlanarConfiguration.Planar) {
         this.setFrameDataU8(frame, PixelConverter.interleaved24ToPlanar(data));
-      }
-      else {
+      } else {
         this.setFrameDataU8(frame, data);
       }
-      
     } else {
       throw new Error(
         `Unsupported pixel data photometric interpretation: ${photometricInterpretation}`

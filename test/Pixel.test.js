@@ -1085,7 +1085,7 @@ describe('Pixel', () => {
 
   it('should correctly get and set frame data for single bit (1-bit) images', () => {
     // Create 1-bit test data: 2x4 image = 8 pixels packed into 1 byte
-    const packedData = new Uint8Array([0xAA]); // 10101010 in binary
+    const packedData = new Uint8Array([0xaa]); // 10101010 in binary
     const image = new DicomImage(
       {
         Rows: 2,
@@ -1118,10 +1118,18 @@ describe('Pixel', () => {
   it('should correctly get and set frame data for RGB interleaved color images', () => {
     // Create RGB test data: 2x2 image = 4 pixels * 3 components = 12 bytes
     const testData = new Uint8Array([
-      255, 0, 0,    // Red pixel
-      0, 255, 0,    // Green pixel
-      0, 0, 255,    // Blue pixel
-      128, 128, 128 // Gray pixel
+      255,
+      0,
+      0, // Red pixel
+      0,
+      255,
+      0, // Green pixel
+      0,
+      0,
+      255, // Blue pixel
+      128,
+      128,
+      128, // Gray pixel
     ]);
     const image = new DicomImage(
       {
@@ -1148,10 +1156,18 @@ describe('Pixel', () => {
 
     // Test setFrameData and roundtrip
     const newData = new Uint8Array([
-      128, 128, 128, // Gray pixel
-      0, 0, 255,     // Blue pixel
-      0, 255, 0,     // Green pixel
-      255, 0, 0      // Red pixel
+      128,
+      128,
+      128, // Gray pixel
+      0,
+      0,
+      255, // Blue pixel
+      0,
+      255,
+      0, // Green pixel
+      255,
+      0,
+      0, // Red pixel
     ]);
     pixel.setFrameData(0, newData);
     const retrievedData = pixel.getFrameData(0);
@@ -1166,9 +1182,18 @@ describe('Pixel', () => {
     // Create RGB planar test data: 2x2 image = 4 pixels * 3 components = 12 bytes
     // Planar format: RRRR GGGG BBBB
     const testData = new Uint8Array([
-      255, 0, 0, 128,    // Red channel
-      0, 255, 0, 128,    // Green channel
-      0, 0, 255, 128     // Blue channel
+      255,
+      0,
+      0,
+      128, // Red channel
+      0,
+      255,
+      0,
+      128, // Green channel
+      0,
+      0,
+      255,
+      128, // Blue channel
     ]);
     const image = new DicomImage(
       {
@@ -1191,10 +1216,18 @@ describe('Pixel', () => {
     expect(frameData.length).to.equal(testData.length);
     // Should be converted to interleaved: RGB RGB RGB RGB
     const expectedInterleaved = new Uint8Array([
-      255, 0, 0,    // Red pixel
-      0, 255, 0,    // Green pixel
-      0, 0, 255,    // Blue pixel
-      128, 128, 128 // Gray pixel
+      255,
+      0,
+      0, // Red pixel
+      0,
+      255,
+      0, // Green pixel
+      0,
+      0,
+      255, // Blue pixel
+      128,
+      128,
+      128, // Gray pixel
     ]);
     for (let i = 0; i < expectedInterleaved.length; i++) {
       expect(frameData[i]).to.equal(expectedInterleaved[i]);
@@ -1202,10 +1235,18 @@ describe('Pixel', () => {
 
     // Test setFrameData and roundtrip with interleaved data
     const newInterleavedData = new Uint8Array([
-      128, 128, 128, // Gray pixel
-      0, 0, 255,     // Blue pixel
-      0, 255, 0,     // Green pixel
-      255, 0, 0      // Red pixel
+      128,
+      128,
+      128, // Gray pixel
+      0,
+      0,
+      255, // Blue pixel
+      0,
+      255,
+      0, // Green pixel
+      255,
+      0,
+      0, // Red pixel
     ]);
     pixel.setFrameData(0, newInterleavedData);
     const retrievedData = pixel.getFrameData(0);
