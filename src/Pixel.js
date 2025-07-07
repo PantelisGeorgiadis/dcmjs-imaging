@@ -518,6 +518,127 @@ class Pixel {
   }
 
   /**
+   * Gets the raw frame data for a given frame.
+   * The array return type is based on the image metadata.
+   * @method
+   * @param {number} frame - Frame index.
+   * @returns {Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array} Frame data.
+   */
+  getFrameData(frame) {
+    //TODO: Should the pipeline fixes modify the pixel object?
+    PixelPipeline._applyPipelineFixes(this);
+
+    let photometricInterpretation = this.getPhotometricInterpretation();
+    if (
+      photometricInterpretation === PhotometricInterpretation.Monochrome1 ||
+      photometricInterpretation === PhotometricInterpretation.Monochrome2 ||
+      photometricInterpretation === PhotometricInterpretation.PaletteColor
+    ) {
+      if (this.getBitsStored() === 1) {
+        return SingleBitPixelPipeline._expandBits(
+          this.getWidth(),
+          this.getHeight(),
+          this.getFrameDataU8(frame)
+        );
+      } else if (
+        this.getBitsAllocated() === 8 &&
+        this.getHighBit() === 7 &&
+        this.getBitsStored() === 8
+      ) {
+        return this.getFrameDataU8(frame);
+      } else if (this.getBitsAllocated() <= 16) {
+        return this.isSigned() ? this.getFrameDataS16(frame) : this.getFrameDataU16(frame);
+      } else if (this.getBitsAllocated() <= 32) {
+        return this.hasFloatPixelData()
+          ? this.getFrameDataF32(frame)
+          : this.isSigned()
+            ? this.getFrameDataS32(frame)
+            : this.getFrameDataU32(frame);
+      } else {
+        throw new Error(`Unsupported pixel data value for bits stored: ${this.getBitsStored()}`);
+      }
+    } else if (
+      photometricInterpretation === PhotometricInterpretation.Rgb ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull422 ||
+      photometricInterpretation === PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation === PhotometricInterpretation.Cmyk ||
+      photometricInterpretation === PhotometricInterpretation.Argb ||
+      photometricInterpretation === PhotometricInterpretation.Hsv
+    ) {
+      let data = this.getFrameDataU8(frame);
+      if (this.getPlanarConfiguration() === PlanarConfiguration.Planar) {
+        data = PixelConverter.planarToInterleaved24(data);
+      }
+      return data;
+    } else {
+      throw new Error(
+        `Unsupported pixel data photometric interpretation: ${photometricInterpretation}`
+      );
+    }
+  }
+
+  /**
+   * Updates pixel data for a given frame.
+   * The array passed should be the same type as returned from getFrameData.
+   * @method
+   * @param {number} frame - Frame index.
+   * @param {Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array} data - Frame data
+   */
+  setFrameData(frame, data) {
+    let photometricInterpretation = this.getPhotometricInterpretation();
+    if (
+      photometricInterpretation === PhotometricInterpretation.Monochrome1 ||
+      photometricInterpretation === PhotometricInterpretation.Monochrome2 ||
+      photometricInterpretation === PhotometricInterpretation.PaletteColor
+    ) {
+      if (this.getBitsStored() === 1) {
+        this.setFrameDataU8(frame, SingleBitPixelPipeline._shrinkBytes(
+          this.getWidth(),
+          this.getHeight(),
+          data
+        ));
+      } else if (
+        this.getBitsAllocated() === 8 &&
+        this.getHighBit() === 7 &&
+        this.getBitsStored() === 8
+      ) {
+        this.setFrameDataU8(frame, data);
+      } else if (this.getBitsAllocated() <= 16) {
+        this.isSigned() ? this.setFrameDataS16(frame, data) : this.setFrameDataU16(frame, data);
+      } else if (this.getBitsAllocated() <= 32) {
+        this.hasFloatPixelData()
+          ? this.setFrameDataF32(frame, data)
+          : this.isSigned()
+            ? this.setFrameDataS32(frame, data)
+            : this.setFrameDataU32(frame, data);
+      } else {
+        throw new Error(`Unsupported pixel data value for bits stored: ${this.getBitsStored()}`);
+      }
+    } else if (
+      photometricInterpretation === PhotometricInterpretation.Rgb ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull ||
+      photometricInterpretation === PhotometricInterpretation.YbrFull422 ||
+      photometricInterpretation === PhotometricInterpretation.YbrPartial422 ||
+      photometricInterpretation === PhotometricInterpretation.Cmyk ||
+      photometricInterpretation === PhotometricInterpretation.Argb ||
+      photometricInterpretation === PhotometricInterpretation.Hsv
+    ) {
+      if (this.getPlanarConfiguration() === PlanarConfiguration.Planar) {
+        this.setFrameDataU8(frame, PixelConverter.interleaved24ToPlanar(data));
+      }
+      else {
+        this.setFrameDataU8(frame, data);
+      }
+      
+    } else {
+      throw new Error(
+        `Unsupported pixel data photometric interpretation: ${photometricInterpretation}`
+      );
+    }
+  }
+
+  /**
    * Gets the pixel description.
    * @method
    * @returns {string} Pixel description.
@@ -1548,6 +1669,25 @@ class PixelConverter {
       output[n * 3] = data[n];
       output[n * 3 + 1] = data[n + pixelCount * 1];
       output[n * 3 + 2] = data[n + pixelCount * 2];
+    }
+
+    return output;
+  }
+
+  /**
+   * Converts 24 bits pixels from interleaved (RGB) to planar (RRR...GGG...BBB...).
+   * @method
+   * @static
+   * @param {Uint8Array} data - Pixels data in interleaved format (RGB).
+   * @returns {Uint8Array} Pixels data in planar format (RRR...GGG...BBB...).
+   */
+  static interleaved24ToPlanar(data) {
+    const output = new Uint8Array(data.length);
+    const pixelCount = Math.trunc(data.length / 3);
+    for (let n = 0; n < pixelCount; n++) {
+      output[n] = data[n * 3];
+      output[n + pixelCount * 1] = data[n * 3 + 1];
+      output[n + pixelCount * 2] = data[n * 3 + 2];
     }
 
     return output;

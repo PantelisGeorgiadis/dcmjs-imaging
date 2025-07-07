@@ -869,4 +869,512 @@ describe('Pixel', () => {
       expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
     }
   });
+
+  // Tests for getFrameData and setFrameData methods
+  it('should correctly get and set frame data for 8-bit grayscale', () => {
+    const testData = new Uint8Array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 5,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint8Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Uint8Array([100, 90, 80, 70, 60, 50, 40, 30, 20, 10]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint8Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for 16-bit unsigned grayscale', () => {
+    const testData = new Uint16Array([1000, 2000, 3000, 4000, 5000, 6000]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 3,
+        BitsStored: 16,
+        BitsAllocated: 16,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint16Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Uint16Array([6000, 5000, 4000, 3000, 2000, 1000]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint16Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for 16-bit signed grayscale', () => {
+    const testData = new Int16Array([-1000, -500, 0, 500, 1000, -2000]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 3,
+        BitsStored: 16,
+        BitsAllocated: 16,
+        PixelRepresentation: PixelRepresentation.Signed,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Int16Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Int16Array([2000, -1000, 1000, -500, 500, 0]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Int16Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for 32-bit unsigned integer', () => {
+    const testData = new Uint32Array([100000, 200000, 300000, 400000]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        BitsStored: 32,
+        BitsAllocated: 32,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint32Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Uint32Array([400000, 300000, 200000, 100000]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint32Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for 32-bit signed integer', () => {
+    const testData = new Int32Array([-100000, -50000, 50000, 100000]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        BitsStored: 32,
+        BitsAllocated: 32,
+        PixelRepresentation: PixelRepresentation.Signed,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Int32Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Int32Array([100000, -50000, 50000, -100000]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Int32Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for 32-bit float', () => {
+    const testData = new Float32Array([1.5, 2.5, -3.5, 4.5]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        BitsStored: 32,
+        BitsAllocated: 32,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        FloatPixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Float32Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.be.closeTo(testData[i], 0.001);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Float32Array([4.5, -3.5, 2.5, 1.5]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Float32Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.be.closeTo(newData[i], 0.001);
+    }
+  });
+
+  it('should correctly get and set frame data for single bit (1-bit) images', () => {
+    // Create 1-bit test data: 2x4 image = 8 pixels packed into 1 byte
+    const packedData = new Uint8Array([0xAA]); // 10101010 in binary
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 4,
+        BitsStored: 1,
+        BitsAllocated: 1,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [packedData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData - should return expanded bits as Uint8Array
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint8Array);
+    expect(frameData.length).to.equal(8); // 8 pixels
+    expect(Array.from(frameData)).to.deep.equal([0, 1, 0, 1, 0, 1, 0, 1]);
+
+    // Test setFrameData and roundtrip
+    const newData = new Uint8Array([1, 0, 1, 0, 1, 0, 1, 0]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint8Array);
+    expect(retrievedData.length).to.equal(8);
+    expect(Array.from(retrievedData)).to.deep.equal([1, 0, 1, 0, 1, 0, 1, 0]);
+  });
+
+  it('should correctly get and set frame data for RGB interleaved color images', () => {
+    // Create RGB test data: 2x2 image = 4 pixels * 3 components = 12 bytes
+    const testData = new Uint8Array([
+      255, 0, 0,    // Red pixel
+      0, 255, 0,    // Green pixel
+      0, 0, 255,    // Blue pixel
+      128, 128, 128 // Gray pixel
+    ]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 3,
+        PlanarConfiguration: PlanarConfiguration.Interleaved,
+        PhotometricInterpretation: PhotometricInterpretation.Rgb,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint8Array);
+    expect(frameData.length).to.equal(testData.length);
+    for (let i = 0; i < testData.length; i++) {
+      expect(frameData[i]).to.equal(testData[i]);
+    }
+
+    // Test setFrameData and roundtrip
+    const newData = new Uint8Array([
+      128, 128, 128, // Gray pixel
+      0, 0, 255,     // Blue pixel
+      0, 255, 0,     // Green pixel
+      255, 0, 0      // Red pixel
+    ]);
+    pixel.setFrameData(0, newData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint8Array);
+    expect(retrievedData.length).to.equal(newData.length);
+    for (let i = 0; i < newData.length; i++) {
+      expect(retrievedData[i]).to.equal(newData[i]);
+    }
+  });
+
+  it('should correctly get and set frame data for RGB planar color images', () => {
+    // Create RGB planar test data: 2x2 image = 4 pixels * 3 components = 12 bytes
+    // Planar format: RRRR GGGG BBBB
+    const testData = new Uint8Array([
+      255, 0, 0, 128,    // Red channel
+      0, 255, 0, 128,    // Green channel
+      0, 0, 255, 128     // Blue channel
+    ]);
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 3,
+        PlanarConfiguration: PlanarConfiguration.Planar,
+        PhotometricInterpretation: PhotometricInterpretation.Rgb,
+        PixelData: [testData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getFrameData - should return interleaved format
+    const frameData = pixel.getFrameData(0);
+    expect(frameData).to.be.instanceof(Uint8Array);
+    expect(frameData.length).to.equal(testData.length);
+    // Should be converted to interleaved: RGB RGB RGB RGB
+    const expectedInterleaved = new Uint8Array([
+      255, 0, 0,    // Red pixel
+      0, 255, 0,    // Green pixel
+      0, 0, 255,    // Blue pixel
+      128, 128, 128 // Gray pixel
+    ]);
+    for (let i = 0; i < expectedInterleaved.length; i++) {
+      expect(frameData[i]).to.equal(expectedInterleaved[i]);
+    }
+
+    // Test setFrameData and roundtrip with interleaved data
+    const newInterleavedData = new Uint8Array([
+      128, 128, 128, // Gray pixel
+      0, 0, 255,     // Blue pixel
+      0, 255, 0,     // Green pixel
+      255, 0, 0      // Red pixel
+    ]);
+    pixel.setFrameData(0, newInterleavedData);
+    const retrievedData = pixel.getFrameData(0);
+    expect(retrievedData).to.be.instanceof(Uint8Array);
+    expect(retrievedData.length).to.equal(newInterleavedData.length);
+    for (let i = 0; i < newInterleavedData.length; i++) {
+      expect(retrievedData[i]).to.equal(newInterleavedData[i]);
+    }
+  });
+
+  it('should correctly handle multi-frame data with getFrameData and setFrameData', () => {
+    const frame1Data = new Uint8Array([10, 20, 30, 40]);
+    const frame2Data = new Uint8Array([50, 60, 70, 80]);
+    const combinedData = new Uint8Array([...frame1Data, ...frame2Data]);
+
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        NumberOfFrames: 2,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [combinedData.buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test getting frame data for both frames
+    const frameData1 = pixel.getFrameData(0);
+    const frameData2 = pixel.getFrameData(1);
+
+    expect(frameData1.length).to.equal(4);
+    expect(frameData2.length).to.equal(4);
+
+    for (let i = 0; i < 4; i++) {
+      expect(frameData1[i]).to.equal(frame1Data[i]);
+      expect(frameData2[i]).to.equal(frame2Data[i]);
+    }
+
+    // Test setting frame data and roundtrip
+    const newFrame1Data = new Uint8Array([100, 110, 120, 130]);
+    const newFrame2Data = new Uint8Array([140, 150, 160, 170]);
+
+    pixel.setFrameData(0, newFrame1Data);
+    pixel.setFrameData(1, newFrame2Data);
+
+    const retrievedFrame1 = pixel.getFrameData(0);
+    const retrievedFrame2 = pixel.getFrameData(1);
+
+    for (let i = 0; i < 4; i++) {
+      expect(retrievedFrame1[i]).to.equal(newFrame1Data[i]);
+      expect(retrievedFrame2[i]).to.equal(newFrame2Data[i]);
+    }
+  });
+
+  it('should maintain data type consistency in getFrameData/setFrameData roundtrip', () => {
+    // Test various data types to ensure roundtrip maintains correct types
+    const testCases = [
+      {
+        name: '8-bit unsigned',
+        data: new Uint8Array([10, 20, 30, 40]),
+        config: {
+          BitsStored: 8,
+          BitsAllocated: 8,
+          PixelRepresentation: PixelRepresentation.Unsigned,
+        },
+        expectedType: Uint8Array,
+      },
+      {
+        name: '16-bit unsigned',
+        data: new Uint16Array([1000, 2000, 3000, 4000]),
+        config: {
+          BitsStored: 16,
+          BitsAllocated: 16,
+          PixelRepresentation: PixelRepresentation.Unsigned,
+        },
+        expectedType: Uint16Array,
+      },
+      {
+        name: '16-bit signed',
+        data: new Int16Array([-1000, -500, 500, 1000]),
+        config: {
+          BitsStored: 16,
+          BitsAllocated: 16,
+          PixelRepresentation: PixelRepresentation.Signed,
+        },
+        expectedType: Int16Array,
+      },
+      {
+        name: '32-bit unsigned',
+        data: new Uint32Array([100000, 200000, 300000, 400000]),
+        config: {
+          BitsStored: 32,
+          BitsAllocated: 32,
+          PixelRepresentation: PixelRepresentation.Unsigned,
+        },
+        expectedType: Uint32Array,
+      },
+      {
+        name: '32-bit signed',
+        data: new Int32Array([-100000, -50000, 50000, 100000]),
+        config: {
+          BitsStored: 32,
+          BitsAllocated: 32,
+          PixelRepresentation: PixelRepresentation.Signed,
+        },
+        expectedType: Int32Array,
+      },
+    ];
+
+    testCases.forEach(({ name, data, config, expectedType }) => {
+      const image = new DicomImage(
+        {
+          Rows: 2,
+          Columns: 2,
+          SamplesPerPixel: 1,
+          PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+          PixelData: [data.buffer],
+          ...config,
+        },
+        TransferSyntax.ImplicitVRLittleEndian
+      );
+      const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+      // Test getFrameData returns correct type
+      const frameData = pixel.getFrameData(0);
+      expect(frameData).to.be.instanceof(expectedType, `getFrameData failed for ${name}`);
+
+      // Test roundtrip maintains type and values
+      pixel.setFrameData(0, data);
+      const retrievedData = pixel.getFrameData(0);
+      expect(retrievedData).to.be.instanceof(expectedType, `roundtrip failed for ${name}`);
+      expect(retrievedData.length).to.equal(data.length, `length mismatch for ${name}`);
+
+      for (let i = 0; i < data.length; i++) {
+        expect(retrievedData[i]).to.equal(data[i], `value mismatch at index ${i} for ${name}`);
+      }
+    });
+  });
+
+  it('should throw error for invalid frame index in getFrameData and setFrameData', () => {
+    const image = new DicomImage(
+      {
+        Rows: 2,
+        Columns: 2,
+        NumberOfFrames: 1,
+        BitsStored: 8,
+        BitsAllocated: 8,
+        SamplesPerPixel: 1,
+        PhotometricInterpretation: PhotometricInterpretation.Monochrome2,
+        PixelData: [new Uint8Array([1, 2, 3, 4]).buffer],
+      },
+      TransferSyntax.ImplicitVRLittleEndian
+    );
+    const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
+
+    // Test invalid frame index for getFrameData
+    expect(() => pixel.getFrameData(1)).to.throw('Requested frame is out of range');
+    expect(() => pixel.getFrameData(-1)).to.throw('Requested frame is out of range');
+
+    // Test invalid frame index for setFrameData
+    expect(() => pixel.setFrameData(1, new Uint8Array([1, 2, 3, 4]))).to.throw(
+      'Requested frame is out of range'
+    );
+    expect(() => pixel.setFrameData(-1, new Uint8Array([1, 2, 3, 4]))).to.throw(
+      'Requested frame is out of range'
+    );
+  });
 });
