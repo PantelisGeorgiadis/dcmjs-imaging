@@ -1,6 +1,6 @@
 {
   "name": "dcmjs-imaging",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "DICOM image and overlay rendering for Node.js and browser using dcmjs",
   "main": "build/dcmjs-imaging.min.js",
   "module": "build/dcmjs-imaging.min.js",
@@ -43,7 +43,7 @@
   "funding": "https://github.com/PantelisGeorgiadis/dcmjs-imaging?sponsor=1",
   "homepage": "https://github.com/PantelisGeorgiadis/dcmjs-imaging",
   "dependencies": {
-    "dcmjs": "^0.40.0",
+    "dcmjs": "^0.43.0",
     "dcmjs-codecs": "^0.0.6",
     "loglevel": "^1.9.2",
     "loglevel-plugin-prefix": "^0.8.4"
@@ -64,16 +64,16 @@
     "karma-chrome-launcher": "^3.2.0",
     "karma-mocha": "^2.0.1",
     "karma-mocha-reporter": "^2.2.5",
-    "mocha": "^11.1.0",
+    "mocha": "^11.7.1",
     "open-cli": "^7.2.0",
     "pako": "^2.1.0",
-    "prettier": "^3.5.3",
-    "shx": "^0.3.4",
+    "prettier": "^3.6.2",
+    "shx": "^0.3.3",
     "terser-webpack-plugin": "^5.3.14",
     "ts-node": "^10.9.2",
     "tsd": "^0.32.0",
     "typescript": "^5.8.3",
-    "webpack": "^5.99.9",
+    "webpack": "^5.100.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^4.15.2"
   }

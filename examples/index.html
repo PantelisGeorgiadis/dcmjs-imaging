@@ -121,10 +121,10 @@
         let y = 0;
 
         let renderer = 'Canvas';
-        if (isWebGpuAvailable()) {
-          renderer = 'WebGPU';
-        } else if (isWebGLAvailable()) {
+        if (isWebGLAvailable()) {
           renderer = 'WebGL';
+        } else if (isWebGpuAvailable()) {
+          renderer = 'WebGPU';
         }
 
         const image = new DicomImage(arrayBuffer);
@@ -214,7 +214,9 @@
         });
         windowLevel = renderingResult.windowLevel;
       };
-      reader.readAsArrayBuffer(file);
+      if (file) {
+        reader.readAsArrayBuffer(file);
+      }
     }
 
     function renderFrame(opts) {
