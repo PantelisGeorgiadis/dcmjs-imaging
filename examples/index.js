@@ -1,7 +1,6 @@
 const dcmjsImaging = require('./../src');
 const { DicomImage, NativePixelDecoder } = dcmjsImaging;
 
-const path = require('path');
 const bmp = require('bmp-js');
 const fs = require('fs');
 
@@ -9,9 +8,7 @@ async function renderToBmp(dicomFile, bmpFile) {
   // Register native decoders
   // Optionally, provide the path to WebAssembly module.
   // If not provided, the module is trying to be resolved within the same directory.
-  await NativePixelDecoder.initializeAsync({
-    webAssemblyModulePathOrUrl: path.resolve(__dirname, './../wasm/bin/native-pixel-decoder.wasm'),
-  });
+  await NativePixelDecoder.initializeAsync();
 
   const fileBuffer = fs.readFileSync(dicomFile);
   const image = new DicomImage(
@@ -41,5 +38,17 @@ async function renderToBmp(dicomFile, bmpFile) {
 
 const args = process.argv.slice(2);
 (async () => {
-  await renderToBmp(args[0], args[1]);
+  const dicomFile = args[0];
+  if (!dicomFile) {
+    console.error('Please provide the path to the DICOM file as the first argument.');
+    process.exit(1);
+  }
+
+  const bmpFile = args[1];
+  if (!bmpFile) {
+    console.error('Please provide the path to the BMP file as the second argument.');
+    process.exit(1);
+  }
+
+  await renderToBmp(dicomFile, bmpFile);
 })();
