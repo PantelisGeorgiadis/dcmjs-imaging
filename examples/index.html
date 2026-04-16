@@ -3,516 +3,778 @@
   <head>
     <title>dcmjs-imaging rendering example</title>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
     <style>
-      html,
-      body {
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
         margin: 0;
         padding: 0;
+      }
+
+      html,
+      body {
+        min-height: 100%;
         width: 100%;
-        height: 100%;
-        display: table;
       }
-      .container {
-        display: table-cell;
-        text-align: center;
-        vertical-align: middle;
+
+      body {
+        min-height: 100vh;
+        background: #0d1117;
+        color: #c9d1d9;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 32px 16px;
       }
-      .content {
-        display: inline-block;
+
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: #f0f6fc;
+        letter-spacing: -0.3px;
+        margin-bottom: 4px;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 960px;
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .drop-zone {
+        padding: 30px 20px;
         text-align: center;
+        border-bottom: 1px solid #30363d;
+        transition:
+          background 0.15s,
+          box-shadow 0.15s;
+      }
+
+      .drop-zone.dragging {
+        background: rgba(88, 166, 255, 0.05);
+        box-shadow: inset 0 0 0 2px #58a6ff;
+      }
+
+      .drop-title {
+        font-size: 13px;
+        color: #8b949e;
+        margin-bottom: 14px;
+      }
+
+      .drop-title + .drop-title {
+        margin-top: -8px;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 16px;
+        border-radius: 6px;
+        border: 1px solid;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          opacity 0.12s;
+      }
+
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        color: #58a6ff;
+        border-color: rgba(56, 139, 253, 0.4);
+        background: transparent;
+      }
+
+      .btn-primary:not(:disabled):hover {
+        background: rgba(88, 166, 255, 0.1);
+      }
+
+      .status-bar {
+        padding: 8px 14px;
+        border-bottom: 1px solid #30363d;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 40px;
+      }
+
+      .status-text {
+        flex: 1;
+        font-size: 12px;
+        color: #8b949e;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status-text.error {
+        color: #f85149;
+      }
+
+      .renderer-badge {
+        color: #3fb950;
+        border: 1px solid rgba(63, 185, 80, 0.3);
+        background: rgba(63, 185, 80, 0.06);
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+
+      .canvas-wrap {
+        background: #0d1117;
+        padding: 16px;
+        text-align: center;
+        min-height: 260px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      canvas {
+        max-width: 100%;
+        max-height: 70vh;
+        display: block;
+        border-radius: 4px;
+      }
+
+      .footer-note {
+        margin-top: 14px;
+        font-size: 12px;
+        color: #484f58;
+        text-align: center;
+      }
+
+      @media (max-width: 640px) {
+        .btn-row {
+          flex-direction: column;
+        }
+
+        .btn {
+          justify-content: center;
+        }
       }
     </style>
   </head>
   <body>
-    <div id="dropZone" class="container">
-      <div class="content">
-        <p id="infoText">
-          <a id="openLink" href="">Open</a> or drag and drop a DICOM Part 10 file to render it!<br />Nothing
-          gets uploaded anywhere.<br /><br />While holding the left mouse button, move the mouse
-          over the image to adjust window/level.<br />Use mouse wheel to scroll through multiple
-          frames.
-        </p>
-        <canvas id="renderingCanvas"></canvas>
+    <h1 class="page-title">dcmjs-imaging rendering example</h1>
+    <div id="app">
+      <div
+        class="card"
+        @dragover.prevent="onDragOver"
+        @dragleave="onDragLeave"
+        @drop.prevent="onDrop"
+      >
+        <div class="drop-zone" :class="{ dragging: isDragging }">
+          <p class="drop-title">Open or drag and drop a DICOM Part 10 file to render it!</p>
+          <p class="drop-title">
+            While holding the left mouse button, move the mouse to adjust window/level. Use mouse
+            wheel to scroll frames.
+          </p>
+          <div class="btn-row">
+            <button class="btn btn-primary" :disabled="isRendering" @click="openFile">
+              Open DICOM file
+            </button>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <span class="status-text" :class="{ error: hasError }">{{ statusText }}</span>
+          <span class="renderer-badge">{{ renderer }}</span>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas ref="canvasRef"></canvas>
+        </div>
       </div>
+      <p class="footer-note">Nothing is uploaded anywhere.</p>
     </div>
-  </body>
-  <script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
-  <script type="text/javascript" src="dcmjs-imaging.min.js"></script>
-  <script>
-    let webGpuAdapter;
-    let webGpuDevice;
-    let webGpuFormat;
 
-    const WebGPUVertexShaderCode = `
-            struct VertexOutput {
-              @builtin(position) position : vec4<f32>,
-              @location(0) texCoord : vec2<f32>,
-            };
+    <script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
+    <script type="text/javascript" src="dcmjs-imaging.min.js"></script>
+    <script>
+      let webGpuAdapter;
+      let webGpuDevice;
+      let webGpuFormat;
 
-            @vertex
-            fn main_v(@location(0) position : vec2<f32>, @location(1) texCoord : vec2<f32>) -> VertexOutput {
-              var output : VertexOutput;
-              output.position = vec4<f32>(position, 0.0, 1.0);
-              output.texCoord = texCoord;
-              return output;
-            }
-          `;
-    const WebGPUFragmentShaderCode = `
-            @group(0) @binding(0) var texSampler: sampler;
-            @group(0) @binding(1) var tex: texture_2d<f32>;
+      const WebGPUVertexShaderCode = `
+        struct VertexOutput {
+          @builtin(position) position : vec4<f32>,
+          @location(0) texCoord : vec2<f32>,
+        };
 
-            @fragment
-            fn main_f(@location(0) texCoord : vec2<f32>) -> @location(0) vec4<f32> {
-              return textureSample(tex, texSampler, texCoord);
-            }
-          `;
+        @vertex
+        fn main_v(@location(0) position : vec2<f32>, @location(1) texCoord : vec2<f32>) -> VertexOutput {
+          var output : VertexOutput;
+          output.position = vec4<f32>(position, 0.0, 1.0);
+          output.texCoord = vec2<f32>(texCoord.x, 1.0 - texCoord.y);
+          return output;
+        }
+      `;
 
-    const WebGLBaseVertexShader = `
-            attribute vec2 position;
-            varying vec2 texCoords;
-            void main() {
-              texCoords = (position + 1.0) / 2.0;
-              texCoords.y = 1.0 - texCoords.y;
-              gl_Position = vec4(position, 0, 1.0);
-            }
-          `;
-    const WebGLBaseFragmentShader = `
-            precision highp float;
-            varying vec2 texCoords;
-            uniform sampler2D textureSampler;
-            void main() {
-              vec4 color = texture2D(textureSampler, texCoords);
-              gl_FragColor = color;
-            }
-          `;
+      const WebGPUFragmentShaderCode = `
+        @group(0) @binding(0) var texSampler: sampler;
+        @group(0) @binding(1) var tex: texture_2d<f32>;
 
-    const { DicomImage, WindowLevel, NativePixelDecoder } = window.dcmjsImaging;
-    window.onload = async (event) => {
-      await NativePixelDecoder.initializeAsync();
-      if (navigator.gpu) {
-        webGpuAdapter = await navigator.gpu.requestAdapter();
-        webGpuDevice = await webGpuAdapter.requestDevice();
-        webGpuFormat = navigator.gpu.getPreferredCanvasFormat();
+        @fragment
+        fn main_f(@location(0) texCoord : vec2<f32>) -> @location(0) vec4<f32> {
+          return textureSample(tex, texSampler, texCoord);
+        }
+      `;
+
+      const WebGLBaseVertexShader = `
+        attribute vec2 position;
+        varying vec2 texCoords;
+        void main() {
+          texCoords = (position + 1.0) / 2.0;
+          texCoords.y = 1.0 - texCoords.y;
+          gl_Position = vec4(position, 0, 1.0);
+        }
+      `;
+
+      const WebGLBaseFragmentShader = `
+        precision highp float;
+        varying vec2 texCoords;
+        uniform sampler2D textureSampler;
+        void main() {
+          vec4 color = texture2D(textureSampler, texCoords);
+          gl_FragColor = color;
+        }
+      `;
+
+      const { createApp, ref, onMounted } = Vue;
+      const { DicomImage, NativePixelDecoder } = window.dcmjsImaging;
+
+      function isWebGLAvailable() {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        return gl instanceof WebGLRenderingContext;
       }
-    };
 
-    function renderFile(file) {
-      const reader = new FileReader();
-      reader.onload = (file) => {
-        const arrayBuffer = reader.result;
-        const canvasElement = document.getElementById('renderingCanvas');
-        canvasElement.onwheel = undefined;
-        canvasElement.onmousedown = undefined;
-        canvasElement.onmousemove = undefined;
-        canvasElement.onmouseup = undefined;
-        const infoTextElement = document.getElementById('infoText');
-        infoTextElement.innerText = '';
-
-        const t0 = performance.now();
-
-        let frame = 0;
-        let windowing = false;
-        let windowLevel = undefined;
-        let x = 0;
-        let y = 0;
-
-        let renderer = 'Canvas';
-        if (isWebGLAvailable()) {
-          renderer = 'WebGL';
-        } else if (isWebGpuAvailable()) {
-          renderer = 'WebGPU';
+      function isWebGpuAvailable() {
+        if (!navigator.gpu) {
+          return false;
         }
 
-        const image = new DicomImage(arrayBuffer);
+        if (!webGpuAdapter || !webGpuDevice || !webGpuFormat) {
+          return false;
+        }
 
-        const t1 = performance.now();
-        console.log(`Parsing time: ${t1 - t0} ms`);
-        console.log(`Width: ${image.getWidth()}`);
-        console.log(`Height: ${image.getHeight()}`);
-        console.log(`Number of frames: ${image.getNumberOfFrames()}`);
-        console.log(`Transfer syntax UID: ${image.getTransferSyntaxUid()}`);
+        const canvas = document.createElement('canvas');
+        const gpu = canvas.getContext('webgpu');
+        return gpu instanceof GPUCanvasContext;
+      }
 
-        canvasElement.onwheel = (event) => {
-          if (image.getNumberOfFrames() < 2) {
-            return;
+      function renderFrameWebGPU(renderingResult, opts) {
+        const renderedPixels = new Uint8Array(renderingResult.pixels);
+
+        const context = opts.canvasElement.getContext('webgpu');
+        context.configure({
+          device: webGpuDevice,
+          format: webGpuFormat,
+        });
+
+        const shaderModule = webGpuDevice.createShaderModule({
+          code: WebGPUVertexShaderCode + WebGPUFragmentShaderCode,
+        });
+
+        const bindGroupLayout = webGpuDevice.createBindGroupLayout({
+          entries: [
+            { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+            { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+          ],
+        });
+
+        const pipelineLayout = webGpuDevice.createPipelineLayout({
+          bindGroupLayouts: [bindGroupLayout],
+        });
+
+        const pipeline = webGpuDevice.createRenderPipeline({
+          layout: pipelineLayout,
+          vertex: {
+            module: shaderModule,
+            entryPoint: 'main_v',
+            buffers: [
+              {
+                arrayStride: 16,
+                attributes: [
+                  { shaderLocation: 0, offset: 0, format: 'float32x2' },
+                  { shaderLocation: 1, offset: 8, format: 'float32x2' },
+                ],
+              },
+            ],
+          },
+          fragment: {
+            module: shaderModule,
+            entryPoint: 'main_f',
+            targets: [{ format: webGpuFormat }],
+          },
+          primitive: {
+            topology: 'triangle-list',
+          },
+        });
+
+        // prettier-ignore
+        const vertexData = new Float32Array([
+          -1, -1,  0,  0,
+           1, -1,  1,  0,
+           1,  1,  1,  1,
+           1,  1,  1,  1,
+          -1,  1,  0,  1,
+          -1, -1,  0,  0
+        ]);
+
+        const vertexBuffer = webGpuDevice.createBuffer({
+          size: vertexData.byteLength,
+          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        webGpuDevice.queue.writeBuffer(vertexBuffer, 0, vertexData);
+
+        const texture = webGpuDevice.createTexture({
+          size: [renderingResult.width, renderingResult.height, 1],
+          format: 'rgba8unorm',
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+
+        webGpuDevice.queue.writeTexture(
+          { texture },
+          renderedPixels,
+          {
+            offset: 0,
+            bytesPerRow: renderingResult.width * 4,
+            rowsPerImage: renderingResult.height,
+          },
+          {
+            width: renderingResult.width,
+            height: renderingResult.height,
+            depthOrArrayLayers: 1,
           }
-          event.preventDefault();
+        );
 
-          const next = event.deltaY > 0 ? 1 : -1;
-          if (frame + next > image.getNumberOfFrames() - 1 || frame + next < 0) {
-            return;
-          }
+        const sampler = webGpuDevice.createSampler({
+          magFilter: 'linear',
+          minFilter: 'linear',
+        });
 
-          const renderingResult = renderFrame({
-            image,
-            frame: frame + next,
-            windowLevel,
-            canvasElement,
-            infoTextElement,
-            renderer,
-          });
-          frame = renderingResult.frame;
+        const bindGroup = webGpuDevice.createBindGroup({
+          layout: bindGroupLayout,
+          entries: [
+            { binding: 0, resource: sampler },
+            { binding: 1, resource: texture.createView() },
+          ],
+        });
+
+        const textureView = context.getCurrentTexture().createView();
+        const renderPassDescriptor = {
+          colorAttachments: [
+            {
+              clearValue: { a: 1, b: 0, g: 0, r: 0 },
+              loadOp: 'clear',
+              storeOp: 'store',
+              view: textureView,
+            },
+          ],
         };
 
-        canvasElement.onmousedown = (event) => {
-          if (event.button !== 0 || !windowLevel) {
-            return;
-          }
-          x = event.offsetX;
-          y = event.offsetY;
-          windowing = true;
-        };
-        canvasElement.onmousemove = (event) => {
-          if (event.button !== 0 || !windowLevel) {
-            return;
-          }
-          if (windowing) {
-            const diffX = event.offsetX - x;
-            const diffY = event.offsetY - y;
-            x = event.offsetX;
-            y = event.offsetY;
+        const commandEncoder = webGpuDevice.createCommandEncoder();
+        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setVertexBuffer(0, vertexBuffer);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.draw(6);
+        passEncoder.end();
 
-            const ww = windowLevel.getWindow();
-            const wl = windowLevel.getLevel();
-            if (ww + diffX <= 1) {
+        webGpuDevice.queue.submit([commandEncoder.finish()]);
+      }
+
+      function renderFrameWebGL(renderingResult, opts) {
+        const renderedPixels = new Uint8Array(renderingResult.pixels);
+
+        const gl = opts.canvasElement.getContext('webgl');
+        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, WebGLBaseVertexShader);
+        gl.compileShader(vertexShader);
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+          throw new Error('Error compiling vertex shader: ' + gl.getShaderInfoLog(vertexShader));
+        }
+
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, WebGLBaseFragmentShader);
+        gl.compileShader(fragmentShader);
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+          throw new Error(
+            'Error compiling fragment shader: ' + gl.getShaderInfoLog(fragmentShader)
+          );
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          throw new Error('Error linking program: ' + gl.getProgramInfoLog(program));
+        }
+        gl.validateProgram(program);
+        if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+          throw new Error('Error validating program: ' + gl.getProgramInfoLog(program));
+        }
+        gl.useProgram(program);
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
+
+        // prettier-ignore
+        const vertices = new Float32Array([
+          -1, -1,  1, 
+          -1, -1,  1, 
+           1, -1, -1, 
+           1,  1,  1
+        ]);
+        const vertexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, 'position');
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(positionLocation);
+
+        const texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          renderingResult.width,
+          renderingResult.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          renderedPixels
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      function renderFrameCanvas(renderingResult, opts) {
+        const renderedPixels = new Uint8Array(renderingResult.pixels);
+        const ctx = opts.canvasElement.getContext('2d');
+        ctx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
+        const imageData = ctx.createImageData(renderingResult.width, renderingResult.height);
+        imageData.data.set(renderedPixels);
+        ctx.putImageData(imageData, 0, 0);
+      }
+
+      createApp({
+        setup() {
+          const canvasRef = ref(null);
+          const isDragging = ref(false);
+          const isRendering = ref(false);
+          const hasError = ref(false);
+          const statusText = ref('Initializing decoder...');
+          const renderer = ref('Canvas');
+
+          let image;
+          let frame = 0;
+          let windowing = false;
+          let windowLevel;
+          let x = 0;
+          let y = 0;
+
+          function onDragOver(event) {
+            isDragging.value = true;
+            if (event.dataTransfer) {
+              event.dataTransfer.dropEffect = 'copy';
+            }
+          }
+
+          function onDragLeave() {
+            isDragging.value = false;
+          }
+
+          function detectRenderer() {
+            if (isWebGpuAvailable()) {
+              return 'WebGPU';
+            }
+            if (isWebGLAvailable()) {
+              return 'WebGL';
+            }
+            return 'Canvas';
+          }
+
+          function clearCurrentImage() {
+            image = undefined;
+            frame = 0;
+            windowLevel = undefined;
+            windowing = false;
+
+            const canvasElement = canvasRef.value;
+            if (!canvasElement) {
               return;
             }
 
-            windowLevel.setWindow(ww + diffX);
-            windowLevel.setLevel(wl + diffY);
-            const renderingResult = renderFrame({
-              image,
+            canvasElement.width = 0;
+            canvasElement.height = 0;
+          }
+
+          function drawCurrentFrame() {
+            const canvasElement = canvasRef.value;
+            if (!canvasElement || !image) {
+              return;
+            }
+
+            hasError.value = false;
+
+            const t0 = performance.now();
+            const renderingResult = image.render({
               frame,
               windowLevel,
-              canvasElement,
-              infoTextElement,
-              renderer,
             });
+            const t1 = performance.now();
+
+            canvasElement.width = renderingResult.width;
+            canvasElement.height = renderingResult.height;
+
+            if (renderer.value === 'WebGPU') {
+              renderFrameWebGPU(renderingResult, { canvasElement });
+            } else if (renderer.value === 'WebGL') {
+              renderFrameWebGL(renderingResult, { canvasElement });
+            } else {
+              renderFrameCanvas(renderingResult, { canvasElement });
+            }
+
+            const t2 = performance.now();
             windowLevel = renderingResult.windowLevel;
+
+            const totalFrames = image.getNumberOfFrames();
+            statusText.value =
+              'Frame ' +
+              (frame + 1) +
+              '/' +
+              totalFrames +
+              ' | Window ' +
+              (windowLevel ? windowLevel.toString() : 'N/A') +
+              ' | ' +
+              renderingResult.width +
+              'x' +
+              renderingResult.height +
+              ' | Render ' +
+              (t1 - t0).toFixed(2) +
+              ' ms | Draw ' +
+              (t2 - t1).toFixed(2) +
+              ' ms';
+
+            console.log('Rendering frame: ' + frame);
+            if (renderingResult.windowLevel) {
+              console.log('Rendering window: ' + renderingResult.windowLevel.toString());
+            }
+            console.log('Rendering time: ' + (t1 - t0) + ' ms');
+            console.log('Drawing time [' + renderer.value + ']: ' + (t2 - t1) + ' ms');
           }
-        };
-        canvasElement.onmouseup = (event) => {
-          if (event.button !== 0 || !windowLevel) {
-            return;
+
+          function bindCanvasInteractions() {
+            const canvasElement = canvasRef.value;
+            if (!canvasElement) {
+              return;
+            }
+
+            canvasElement.onwheel = (event) => {
+              if (!image || image.getNumberOfFrames() < 2) {
+                return;
+              }
+
+              event.preventDefault();
+              const next = event.deltaY > 0 ? 1 : -1;
+              const candidate = frame + next;
+              if (candidate > image.getNumberOfFrames() - 1 || candidate < 0) {
+                return;
+              }
+
+              frame = candidate;
+              drawCurrentFrame();
+            };
+
+            canvasElement.onmousedown = (event) => {
+              if (event.button !== 0 || !windowLevel) {
+                return;
+              }
+
+              x = event.offsetX;
+              y = event.offsetY;
+              windowing = true;
+            };
+
+            canvasElement.onmousemove = (event) => {
+              if (!windowing || !windowLevel) {
+                return;
+              }
+
+              const diffX = event.offsetX - x;
+              const diffY = event.offsetY - y;
+              x = event.offsetX;
+              y = event.offsetY;
+
+              const ww = windowLevel.getWindow();
+              const wl = windowLevel.getLevel();
+              if (ww + diffX <= 1) {
+                return;
+              }
+
+              windowLevel.setWindow(ww + diffX);
+              windowLevel.setLevel(wl + diffY);
+              drawCurrentFrame();
+            };
+
+            canvasElement.onmouseup = (event) => {
+              if (event.button !== 0) {
+                return;
+              }
+              windowing = false;
+            };
+
+            canvasElement.onmouseleave = () => {
+              windowing = false;
+            };
           }
-          x = 0;
-          y = 0;
-          windowing = false;
-        };
 
-        const renderingResult = renderFrame({
-          image,
-          frame,
-          windowLevel,
-          canvasElement,
-          infoTextElement,
-          renderer,
-        });
-        windowLevel = renderingResult.windowLevel;
-      };
-      if (file) {
-        reader.readAsArrayBuffer(file);
-      }
-    }
+          function renderArrayBuffer(arrayBuffer) {
+            const t0 = performance.now();
+            image = new DicomImage(arrayBuffer);
+            frame = 0;
+            windowLevel = undefined;
+            renderer.value = detectRenderer();
+            const t1 = performance.now();
 
-    function renderFrame(opts) {
-      opts.infoTextElement.innerHTML = '';
-      opts.canvasElement.width = 0;
-      opts.canvasElement.height = 0;
+            console.log('Parsing time: ' + (t1 - t0) + ' ms');
+            console.log('Width: ' + image.getWidth());
+            console.log('Height: ' + image.getHeight());
+            console.log('Number of frames: ' + image.getNumberOfFrames());
+            console.log('Transfer syntax UID: ' + image.getTransferSyntaxUid());
 
-      try {
-        const t0 = performance.now();
-        const renderingResult = opts.image.render({
-          frame: opts.frame,
-          windowLevel: opts.windowLevel,
-        });
+            drawCurrentFrame();
+          }
 
-        const t1 = performance.now();
+          function renderFile(file) {
+            if (!file) {
+              return;
+            }
 
-        opts.canvasElement.width = renderingResult.width;
-        opts.canvasElement.height = renderingResult.height;
+            const reader = new FileReader();
+            isRendering.value = true;
+            hasError.value = false;
+            statusText.value = 'Loading file...';
 
-        if (opts.renderer === 'WebGPU') {
-          renderFrameWebGPU(renderingResult, opts);
-        } else if (opts.renderer === 'WebGL') {
-          renderFrameWebGL(renderingResult, opts);
-        } else {
-          renderFrameCanvas(renderingResult, opts);
-        }
+            reader.onload = () => {
+              try {
+                renderArrayBuffer(reader.result);
+              } catch (err) {
+                clearCurrentImage();
+                hasError.value = true;
+                statusText.value = 'Error: ' + err.message;
+                console.error(err);
+              } finally {
+                isRendering.value = false;
+              }
+            };
 
-        const t2 = performance.now();
+            reader.onerror = () => {
+              clearCurrentImage();
+              isRendering.value = false;
+              hasError.value = true;
+              statusText.value = 'Error reading file';
+            };
 
-        console.log(`Rendering frame: ${opts.frame}`);
-        if (renderingResult.windowLevel) {
-          console.log(`Rendering window: ${renderingResult.windowLevel.toString()}`);
-        }
-        console.log(`Rendering time: ${t1 - t0} ms`);
-        console.log(`Drawing time [${opts.renderer}]: ${t2 - t1} ms`);
+            reader.readAsArrayBuffer(file);
+          }
 
-        return renderingResult;
-      } catch (err) {
-        opts.infoTextElement.innerText = 'Error: ' + err.message;
-        throw err;
-      }
-    }
+          function onDrop(event) {
+            isDragging.value = false;
+            const file =
+              event.dataTransfer && event.dataTransfer.files
+                ? event.dataTransfer.files[0]
+                : undefined;
+            renderFile(file);
+          }
 
-    function renderFrameWebGPU(renderingResult, opts) {
-      const renderedPixels = new Uint8ClampedArray(renderingResult.pixels);
-      const imageData = new ImageData(
-        renderedPixels,
-        renderingResult.width,
-        renderingResult.height
-      );
+          function openFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = (event) => {
+              const file = event.target.files[0];
+              renderFile(file);
+            };
+            input.click();
+          }
 
-      const context = opts.canvasElement.getContext('webgpu');
-      context.configure({
-        device: webGpuDevice,
-        format: webGpuFormat,
-      });
+          onMounted(async () => {
+            window.addEventListener('dragover', (event) => {
+              event.preventDefault();
+            });
+            window.addEventListener('drop', (event) => {
+              event.preventDefault();
+            });
 
-      const shaderModule = webGpuDevice.createShaderModule({
-        code: WebGPUVertexShaderCode + WebGPUFragmentShaderCode,
-      });
-      const bindGroupLayout = webGpuDevice.createBindGroupLayout({
-        entries: [
-          { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
-          { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
-        ],
-      });
-      const pipelineLayout = webGpuDevice.createPipelineLayout({
-        bindGroupLayouts: [bindGroupLayout],
-      });
-      const pipeline = webGpuDevice.createRenderPipeline({
-        layout: pipelineLayout,
-        vertex: {
-          module: shaderModule,
-          entryPoint: 'main_v',
-          buffers: [
-            {
-              arrayStride: 16,
-              attributes: [
-                { shaderLocation: 0, offset: 0, format: 'float32x2' },
-                { shaderLocation: 1, offset: 8, format: 'float32x2' },
-              ],
-            },
-          ],
+            await NativePixelDecoder.initializeAsync();
+
+            if (navigator.gpu) {
+              webGpuAdapter = await navigator.gpu.requestAdapter();
+              if (webGpuAdapter) {
+                webGpuDevice = await webGpuAdapter.requestDevice();
+                webGpuFormat = navigator.gpu.getPreferredCanvasFormat();
+              }
+            }
+
+            renderer.value = detectRenderer();
+            statusText.value = '';
+            bindCanvasInteractions();
+          });
+
+          return {
+            canvasRef,
+            isDragging,
+            isRendering,
+            hasError,
+            statusText,
+            renderer,
+            onDragOver,
+            onDragLeave,
+            onDrop,
+            openFile,
+          };
         },
-        fragment: {
-          module: shaderModule,
-          entryPoint: 'main_f',
-          targets: [
-            {
-              format: webGpuFormat,
-            },
-          ],
-        },
-        primitive: {
-          topology: 'triangle-list',
-        },
-      });
-
-      // prettier-ignore
-      const vertexData = new Float32Array([
-        -1, -1,  0,  0,
-         1, -1,  1,  0,
-         1,  1,  1,  1,
-         1,  1,  1,  1,
-        -1,  1,  0,  1,
-        -1, -1,  0,  0
-      ]);
-      const vertexBuffer = webGpuDevice.createBuffer({
-        size: vertexData.byteLength,
-        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-      });
-      webGpuDevice.queue.writeBuffer(vertexBuffer, 0, vertexData);
-
-      const texture = webGpuDevice.createTexture({
-        size: [renderingResult.width, renderingResult.height, 1],
-        format: 'rgba8unorm',
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      webGpuDevice.queue.copyExternalImageToTexture(
-        { source: imageData, flipY: true },
-        { texture },
-        { width: renderingResult.width, height: renderingResult.height }
-      );
-
-      const sampler = webGpuDevice.createSampler({
-        magFilter: 'linear',
-        minFilter: 'linear',
-      });
-      const bindGroup = webGpuDevice.createBindGroup({
-        layout: bindGroupLayout,
-        entries: [
-          { binding: 0, resource: sampler },
-          { binding: 1, resource: texture.createView() },
-        ],
-      });
-
-      const textureView = context.getCurrentTexture().createView();
-      const renderPassDescriptor = {
-        colorAttachments: [
-          {
-            clearValue: { a: 1, b: 0, g: 0, r: 0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-            view: textureView,
-          },
-        ],
-      };
-
-      const commandEncoder = webGpuDevice.createCommandEncoder();
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-      passEncoder.setPipeline(pipeline);
-      passEncoder.setVertexBuffer(0, vertexBuffer);
-      passEncoder.setBindGroup(0, bindGroup);
-      passEncoder.draw(6);
-      passEncoder.end();
-
-      webGpuDevice.queue.submit([commandEncoder.finish()]);
-    }
-
-    function renderFrameWebGL(renderingResult, opts) {
-      const renderedPixels = new Uint8Array(renderingResult.pixels);
-
-      const gl = opts.canvasElement.getContext('webgl');
-      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-      gl.clearColor(1.0, 1.0, 1.0, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-      const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-      gl.shaderSource(vertexShader, WebGLBaseVertexShader);
-      gl.compileShader(vertexShader);
-      if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        throw new Error('Error compiling vertex shader', gl.getShaderInfoLog(vertexShader));
-      }
-
-      const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-      gl.shaderSource(fragmentShader, WebGLBaseFragmentShader);
-      gl.compileShader(fragmentShader);
-      if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        throw new Error('Error compiling fragment shader', gl.getShaderInfoLog(fragmentShader));
-      }
-
-      const program = gl.createProgram();
-      gl.attachShader(program, vertexShader);
-      gl.attachShader(program, fragmentShader);
-      gl.linkProgram(program);
-      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error('Error linking program', gl.getProgramInfoLog(program));
-      }
-      gl.validateProgram(program);
-      if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-        throw new Error('Error validating program', gl.getProgramInfoLog(program));
-      }
-      gl.useProgram(program);
-      gl.deleteShader(vertexShader);
-      gl.deleteShader(fragmentShader);
-
-      // prettier-ignore
-      const vertices = new Float32Array([
-        -1, -1,  1, 
-        -1, -1,  1, 
-         1, -1, -1, 
-         1,  1,  1
-      ]);
-      const vertexBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
-      const positionLocation = gl.getAttribLocation(program, 'position');
-      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(positionLocation);
-
-      const texture = gl.createTexture();
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        renderingResult.width,
-        renderingResult.height,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        renderedPixels
-      );
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
-
-    function renderFrameCanvas(renderingResult, opts) {
-      const renderedPixels = new Uint8Array(renderingResult.pixels);
-
-      const ctx = opts.canvasElement.getContext('2d');
-      ctx.clearRect(0, 0, opts.canvasElement.width, opts.canvasElement.height);
-      const imageData = ctx.createImageData(renderingResult.width, renderingResult.height);
-      const canvasPixels = imageData.data;
-      for (let i = 0; i < 4 * renderingResult.width * renderingResult.height; i++) {
-        canvasPixels[i] = renderedPixels[i];
-      }
-      ctx.putImageData(imageData, 0, 0);
-    }
-
-    function isWebGLAvailable() {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-
-      return gl instanceof WebGLRenderingContext;
-    }
-
-    function isWebGpuAvailable() {
-      if (!navigator.gpu) {
-        return false;
-      }
-
-      if (!webGpuAdapter || !webGpuDevice || !webGpuFormat) {
-        return false;
-      }
-
-      const canvas = document.createElement('canvas');
-      const gpu = canvas.getContext('webgpu');
-
-      return gpu instanceof GPUCanvasContext;
-    }
-
-    const dropZone = document.getElementById('dropZone');
-    dropZone.ondragover = (event) => {
-      event.stopPropagation();
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
-    };
-    dropZone.ondrop = (event) => {
-      event.stopPropagation();
-      event.preventDefault();
-      const files = event.dataTransfer.files;
-      renderFile(files[0]);
-    };
-
-    const openLink = document.getElementById('openLink');
-    openLink.onclick = () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.onchange = (event) => {
-        const files = event.target.files;
-        renderFile(files[0]);
-      };
-      input.click();
-
-      return false;
-    };
-  </script>
+      }).mount('#app');
+    </script>
+  </body>
 </html>

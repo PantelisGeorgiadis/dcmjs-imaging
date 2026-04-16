@@ -115,6 +115,23 @@ class NativePixelDecoder {
     return decodedContext.getDecodedBuffer();
   }
 
+  /**
+   * Decodes JPEG-XL frame.
+   * @method
+   * @static
+   * @param {Pixel} pixel - Pixel object.
+   * @param {Uint8Array} data - Encoded pixels data.
+   * @param {Object} [parameters] - Decoder parameters.
+   * @returns {Uint8Array} Decoded pixels data.
+   * @throws Error if NativePixelDecoder module is not initialized.
+   */
+  static decodeJpegXl(pixel, data, parameters) {
+    const context = this._createDecodingContext(pixel, data);
+    const decodedContext = NativeCodecs.decodeJpegXl(context, parameters);
+
+    return decodedContext.getDecodedBuffer();
+  }
+
   //#region Private Methods
   /**
    * Creates a decoding context.

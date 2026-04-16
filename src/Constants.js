@@ -19,7 +19,7 @@ const TransferSyntax = {
   Jpeg2000Lossy: '1.2.840.10008.1.2.4.91',
   JpegXlLossless: '1.2.840.10008.1.2.4.110',
   JpegXlRecompression: '1.2.840.10008.1.2.4.111',
-  JpegXl: '1.2.840.10008.1.2.4.112',
+  JpegXlLossy: '1.2.840.10008.1.2.4.112',
   HtJpeg2000Lossless: '1.2.840.10008.1.2.4.201',
   HtJpeg2000LosslessRpcl: '1.2.840.10008.1.2.4.202',
   HtJpeg2000Lossy: '1.2.840.10008.1.2.4.203',
@@ -46,6 +46,9 @@ const RenderableTransferSyntaxes = [
   TransferSyntax.JpegLsLossy,
   TransferSyntax.Jpeg2000Lossless,
   TransferSyntax.Jpeg2000Lossy,
+  TransferSyntax.JpegXlLossless,
+  TransferSyntax.JpegXlRecompression,
+  TransferSyntax.JpegXlLossy,
   TransferSyntax.HtJpeg2000Lossless,
   TransferSyntax.HtJpeg2000LosslessRpcl,
   TransferSyntax.HtJpeg2000Lossy,
@@ -72,6 +75,7 @@ const PhotometricInterpretation = {
   Cmyk: 'CMYK',
   Argb: 'ARGB',
   Hsv: 'HSV',
+  Xyb: 'XYB',
 };
 Object.freeze(PhotometricInterpretation);
 //#endregion

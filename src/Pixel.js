@@ -586,6 +586,12 @@ class Pixel {
         this.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossy
       ) {
         return NativePixelDecoder.decodeJpeg2000(this, frameFragmentsData);
+      } else if (
+        this.getTransferSyntaxUid() === TransferSyntax.JpegXlLossless ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegXlRecompression ||
+        this.getTransferSyntaxUid() === TransferSyntax.JpegXlLossy
+      ) {
+        return NativePixelDecoder.decodeJpegXl(this, frameFragmentsData);
       }
 
       throw new Error(
@@ -672,7 +678,8 @@ class Pixel {
         } else if (
           this.transferSyntaxUid === TransferSyntax.Jpeg2000Lossless ||
           this.transferSyntaxUid === TransferSyntax.HtJpeg2000Lossless ||
-          this.transferSyntaxUid === TransferSyntax.HtJpeg2000LosslessRpcl
+          this.transferSyntaxUid === TransferSyntax.HtJpeg2000LosslessRpcl ||
+          this.transferSyntaxUid === TransferSyntax.JpegXlLossless
         ) {
           this.photometricInterpretation = PhotometricInterpretation.YbrRct;
         } else if (
@@ -680,6 +687,11 @@ class Pixel {
           this.transferSyntaxUid === TransferSyntax.HtJpeg2000Lossy
         ) {
           this.photometricInterpretation = PhotometricInterpretation.YbrIct;
+        } else if (
+          this.transferSyntaxUid === TransferSyntax.JpegXlRecompression ||
+          this.transferSyntaxUid === TransferSyntax.JpegXlLossy
+        ) {
+          this.photometricInterpretation = PhotometricInterpretation.Xyb;
         }
       }
       log.warn(
@@ -931,6 +943,17 @@ class PixelPipeline {
         pixel.getTransferSyntaxUid() === TransferSyntax.HtJpeg2000Lossy) &&
       (pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrRct ||
         pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrIct)
+    ) {
+      pixel.photometricInterpretation = PhotometricInterpretation.Rgb;
+    }
+
+    // For color JPEG-XL datasets, colorspace is converted to RGB in WebAssembly
+    if (
+      (pixel.getTransferSyntaxUid() === TransferSyntax.JpegXlLossless ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.JpegXlRecompression ||
+        pixel.getTransferSyntaxUid() === TransferSyntax.JpegXlLossy) &&
+      (pixel.getPhotometricInterpretation() === PhotometricInterpretation.Xyb ||
+        pixel.getPhotometricInterpretation() === PhotometricInterpretation.YbrRct)
     ) {
       pixel.photometricInterpretation = PhotometricInterpretation.Rgb;
     }

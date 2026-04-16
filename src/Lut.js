@@ -854,7 +854,8 @@ class LutPipeline {
       photometricInterpretation === PhotometricInterpretation.YbrRct ||
       photometricInterpretation === PhotometricInterpretation.Argb ||
       photometricInterpretation === PhotometricInterpretation.Cmyk ||
-      photometricInterpretation === PhotometricInterpretation.Hsv
+      photometricInterpretation === PhotometricInterpretation.Hsv ||
+      photometricInterpretation === PhotometricInterpretation.Xyb
     ) {
       return new RgbColorLutPipeline();
     } else if (photometricInterpretation === PhotometricInterpretation.PaletteColor) {

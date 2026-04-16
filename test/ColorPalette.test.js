@@ -10,17 +10,17 @@ describe('ColorPalette', () => {
   it('should correctly construct a MONOCHROME1 ColorPalette', () => {
     const colorPalette = ColorPalette.getColorPaletteMonochrome1();
     for (let i = 0; i < 256; i++) {
-      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(255);
-      expect((colorPalette[i] >> 0x10) & 0xff).to.be.eq(255 - i);
-      expect((colorPalette[i] >> 0x08) & 0xff).to.be.eq(255 - i);
-      expect(colorPalette[i] & 0xff).to.be.eq(255 - i);
+      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(0xff);
+      expect((colorPalette[i] >> 0x10) & 0xff).to.be.eq(0xff - i);
+      expect((colorPalette[i] >> 0x08) & 0xff).to.be.eq(0xff - i);
+      expect(colorPalette[i] & 0xff).to.be.eq(0xff - i);
     }
   });
 
   it('should correctly construct a MONOCHROME2 ColorPalette', () => {
     const colorPalette = ColorPalette.getColorPaletteMonochrome2();
     for (let i = 0; i < 256; i++) {
-      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(255);
+      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(0xff);
       expect((colorPalette[i] >> 0x10) & 0xff).to.be.eq(i);
       expect((colorPalette[i] >> 0x08) & 0xff).to.be.eq(i);
       expect(colorPalette[i] & 0xff).to.be.eq(i);
@@ -44,7 +44,7 @@ describe('ColorPalette', () => {
     const pixel = new Pixel(image.getElements(), image.getTransferSyntaxUid());
     const colorPalette = ColorPalette.getColorPalettePaletteColor(pixel);
     for (let i = 0; i < 256; i++) {
-      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(255);
+      expect((colorPalette[i] >> 0x18) & 0xff).to.be.eq(0xff);
       expect((colorPalette[i] >> 0x10) & 0xff).to.be.eq(i);
       expect((colorPalette[i] >> 0x08) & 0xff).to.be.eq(i);
       expect(colorPalette[i] & 0xff).to.be.eq(i);

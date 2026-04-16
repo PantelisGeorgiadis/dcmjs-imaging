@@ -22,6 +22,9 @@ declare namespace TransferSyntax {
   const JpegLsLossy: string;
   const Jpeg2000Lossless: string;
   const Jpeg2000Lossy: string;
+  const JpegXlLossless: string;
+  const JpegXlRecompression: string;
+  const JpegXlLossy: string;
   const HtJpeg2000Lossless: string;
   const HtJpeg2000LosslessRpcl: string;
   const HtJpeg2000Lossy: string;

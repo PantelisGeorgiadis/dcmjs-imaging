@@ -26,6 +26,9 @@ describe('Uninitialized NativePixelDecoder', () => {
     expect(() => {
       NativePixelDecoder.decodeJpeg2000(undefined, undefined);
     }).to.throw();
+    expect(() => {
+      NativePixelDecoder.decodeJpegXl(undefined, undefined);
+    }).to.throw();
   });
 });
 
@@ -589,6 +592,66 @@ describe('NativePixelDecoder', () => {
     const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
     const htJpeg2000DecodedData = NativePixelDecoder.decodeJpeg2000(pixel, htJpeg2000Codestream);
     expect(htJpeg2000DecodedData).to.deep.equal(expectedImageData);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.histograms).to.be.undefined;
+    expect(renderingResult.windowLevel).not.to.be.undefined;
+    expect(renderingResult.windowLevel.getWindow()).to.be.eq(255);
+    expect(renderingResult.windowLevel.getLevel()).to.be.eq(255 / 2);
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0, p = 0; i < 4 * width * height; i += 4) {
+      expect(renderedPixels[i]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 1]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 2]).to.be.eq(expectedImageData[p]);
+      expect(renderedPixels[i + 3]).to.be.eq(255);
+      p++;
+    }
+  });
+
+  it('should correctly decode and render basic JpegXlLossless', () => {
+    const width = 3;
+    const height = 3;
+    // prettier-ignore
+    const expectedImageData = Uint8Array.from([
+      0x00, 0xff, 0x00,
+      0xff, 0x7f, 0xff,
+      0x00, 0xff, 0x00,
+    ]);
+    const jpegXlCodestream = Uint8Array.from([
+      // Codestream signature (Magic bytes identifying a bare JXL bitstream)
+      0xff, 0x0a,
+      // Image Header (SizeHeader & ImageMetadata)
+      // Encodes the tiny x/y dimensions, standard color space, and bit depth
+      0x10, 0x10, 0x10, 0x14, 0x37, 0x02, 0x08, 0x04, 0x01, 0x00,
+      // Frame Header
+      // Configures the frame to use Modular (lossless) encoding rather than VarDCT
+      0x58, 0x00, 0x4b, 0x18,
+      // Entropy-Coded Payload (ANS Data)
+      // The serialized, context-modeled bitstream containing the actual pixel color data
+      0x8b, 0x15, 0x52, 0x5c, 0x16, 0x3c, 0x64, 0x5a, 0xd5, 0xb0, 0xdd, 0xe8, 0x9f, 0x3f,
+      // Stream Termination & Byte Padding
+      // Flushes the ANS decoder state and pads the final bits with zeros to align with a full 8-bit byte boundary
+      0x64, 0xfb, 0xef, 0x4f, 0xe2, 0x03,
+    ]);
+
+    const monoImage = createImageFromPixelData(
+      width,
+      height,
+      8,
+      8,
+      1,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Monochrome2,
+      jpegXlCodestream.buffer,
+      TransferSyntax.JpegXlLossless
+    );
+    const pixel = new Pixel(monoImage.getElements(), monoImage.getTransferSyntaxUid());
+    const jpegXlDecodedData = NativePixelDecoder.decodeJpegXl(pixel, jpegXlCodestream);
+    expect(jpegXlDecodedData).to.deep.equal(expectedImageData);
 
     const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
     expect(renderingResult.histograms).to.be.undefined;
