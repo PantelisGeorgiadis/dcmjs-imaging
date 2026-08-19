@@ -12,7 +12,7 @@ const {
   PaletteColorLutPipeline,
   RgbColorLutPipeline,
 } = require('./Lut');
-const { Pixel, PixelPipeline } = require('./Pixel');
+const { Pixel, PixelPipeline, PixelResizer } = require('./Pixel');
 const { G60xxOverlay, Overlay } = require('./Overlay');
 const WindowLevel = require('./WindowLevel');
 const log = require('./log');
@@ -473,11 +473,29 @@ class DicomImage {
       rgbaPixels[p++] = 0xff;
     }
 
+    const spacingX = pixel.getPixelSpacingX();
+    const spacingY = pixel.getPixelSpacingY();
+    let resultingPixels = rgbaPixels;
+    let resultingWidth = pixel.getWidth();
+    let resultingHeight = pixel.getHeight();
+    if (spacingX !== spacingY) {
+      const minSpacing = Math.min(spacingX, spacingY);
+      resultingWidth = Math.round(pixel.getWidth() * (spacingX / minSpacing));
+      resultingHeight = Math.round(pixel.getHeight() * (spacingY / minSpacing));
+      resultingPixels = PixelResizer.resizeBilinear(
+        rgbaPixels,
+        pixel.getWidth(),
+        pixel.getHeight(),
+        resultingWidth,
+        resultingHeight
+      );
+    }
+
     // Rendering result
     renderingResult.frame = frame;
-    renderingResult.width = pixel.getWidth();
-    renderingResult.height = pixel.getHeight();
-    renderingResult.pixels = rgbaPixels.buffer;
+    renderingResult.width = resultingWidth;
+    renderingResult.height = resultingHeight;
+    renderingResult.pixels = resultingPixels.buffer;
     if (windowLevel) {
       renderingResult.windowLevel = windowLevel;
     }

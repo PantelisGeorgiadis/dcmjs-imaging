@@ -58,6 +58,25 @@ class Pixel {
     );
     this.pixelData = this._getElement(elements, 'PixelData');
     this.floatPixelData = this._getElement(elements, 'FloatPixelData');
+    this.pixelSpacingX = 1.0;
+    this.pixelSpacingY = 1.0;
+    const spacing =
+      this._parseSpacing(this._getElement(elements, 'PixelSpacing')) ||
+      this._parseSpacing(this._getElement(elements, 'ImagerPixelSpacing')) ||
+      this._parseSpacing(this._getElement(elements, 'NominalScannedPixelSpacing'));
+    if (spacing) {
+      this.pixelSpacingY = spacing[0];
+      this.pixelSpacingX = spacing[1];
+    } else {
+      const ratio = this._getElement(elements, 'PixelAspectRatio');
+      if (Array.isArray(ratio) && ratio.length === 2 && ratio[0] > 0 && ratio[1] > 0) {
+        if (ratio[0] < ratio[1]) {
+          this.pixelSpacingX = ratio[1] / ratio[0];
+        } else if (ratio[1] < ratio[0]) {
+          this.pixelSpacingY = ratio[0] / ratio[1];
+        }
+      }
+    }
 
     this._applyPixelFixes();
   }
@@ -716,6 +735,24 @@ class Pixel {
   }
 
   /**
+   * Gets the pixel spacing in the column direction.
+   * @method
+   * @returns {number} Pixel spacing X.
+   */
+  getPixelSpacingX() {
+    return this.pixelSpacingX;
+  }
+
+  /**
+   * Gets the pixel spacing in the row direction.
+   * @method
+   * @returns {number} Pixel spacing Y.
+   */
+  getPixelSpacingY() {
+    return this.pixelSpacingY;
+  }
+
+  /**
    * Gets element value.
    * @method
    * @private
@@ -725,6 +762,31 @@ class Pixel {
    */
   _getElement(elements, tag) {
     return elements[tag];
+  }
+
+  /**
+   * Parses a DICOM spacing value into [rowSpacing, colSpacing].
+   * Accepts an array of two positive numbers or a backslash-delimited string.
+   * @method
+   * @private
+   */
+  _parseSpacing(val) {
+    if (val === undefined || val === null) {
+      return undefined;
+    }
+    let row, col;
+    if (Array.isArray(val) && val.length === 2) {
+      row = parseFloat(val[0]);
+      col = parseFloat(val[1]);
+    } else if (typeof val === 'string') {
+      const parts = val.split('\\');
+      if (parts.length === 2) {
+        row = parseFloat(parts[0]);
+        col = parseFloat(parts[1]);
+      }
+    }
+
+    return row > 0 && col > 0 ? [row, col] : undefined;
   }
   //#endregion
 }
@@ -1505,6 +1567,73 @@ class PixelConverter {
 }
 //#endregion
 
+//#region PixelResizer
+class PixelResizer {
+  /**
+   * Bilinear resize of an RGBA pixel buffer.
+   * @method
+   * @static
+   * @param {Uint8Array} src - Source RGBA pixel buffer.
+   * @param {number} srcW - Source width.
+   * @param {number} srcH - Source height.
+   * @param {number} dstW - Destination width.
+   * @param {number} dstH - Destination height.
+   * @returns {Uint8Array} Resized RGBA pixel buffer.
+   */
+  static resizeBilinear(src, srcW, srcH, dstW, dstH) {
+    const dst = new Uint8Array(dstW * dstH * 4);
+    const xScale = srcW / dstW;
+    const yScale = srcH / dstH;
+
+    // Horizontal offsets and fractions only depend on x - precompute them once
+    const xOffset0 = new Int32Array(dstW);
+    const xOffset1 = new Int32Array(dstW);
+    const xFraction = new Float64Array(dstW);
+    for (let x = 0; x < dstW; x++) {
+      const srcXf = x * xScale;
+      const x0 = srcXf | 0;
+      xOffset0[x] = x0 * 4;
+      xOffset1[x] = (x0 + 1 < srcW ? x0 + 1 : x0) * 4;
+      xFraction[x] = srcXf - x0;
+    }
+
+    let dstIdx = 0;
+    for (let y = 0; y < dstH; y++) {
+      const srcYf = y * yScale;
+      const y0 = srcYf | 0;
+      const y1 = y0 + 1 < srcH ? y0 + 1 : y0;
+      const fy = srcYf - y0;
+      const fy1 = 1 - fy;
+      const row0 = y0 * srcW * 4;
+      const row1 = y1 * srcW * 4;
+
+      for (let x = 0; x < dstW; x++) {
+        const fx = xFraction[x];
+        const fx1 = 1 - fx;
+        const w00 = fx1 * fy1;
+        const w10 = fx * fy1;
+        const w01 = fx1 * fy;
+        const w11 = fx * fy;
+        const tl = row0 + xOffset0[x];
+        const tr = row0 + xOffset1[x];
+        const bl = row1 + xOffset0[x];
+        const br = row1 + xOffset1[x];
+
+        dst[dstIdx++] = (src[tl] * w00 + src[tr] * w10 + src[bl] * w01 + src[br] * w11 + 0.5) | 0;
+        dst[dstIdx++] =
+          (src[tl + 1] * w00 + src[tr + 1] * w10 + src[bl + 1] * w01 + src[br + 1] * w11 + 0.5) | 0;
+        dst[dstIdx++] =
+          (src[tl + 2] * w00 + src[tr + 2] * w10 + src[bl + 2] * w01 + src[br + 2] * w11 + 0.5) | 0;
+        dst[dstIdx++] =
+          (src[tl + 3] * w00 + src[tr + 3] * w10 + src[bl + 3] * w01 + src[br + 3] * w11 + 0.5) | 0;
+      }
+    }
+
+    return dst;
+  }
+}
+//#endregion
+
 //#region Exports
 module.exports = {
   ColorPixelPipeline,
@@ -1512,6 +1641,7 @@ module.exports = {
   Pixel,
   PixelConverter,
   PixelPipeline,
+  PixelResizer,
   SingleBitPixelPipeline,
 };
 //#endregion

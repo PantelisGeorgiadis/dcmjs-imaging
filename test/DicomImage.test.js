@@ -276,6 +276,46 @@ describe('DicomImage', () => {
     });
   });
 
+  it('should correctly render an 8-bit grayscale frame with non-equal pixel spacing (MONOCHROME2)', () => {
+    const width = 2;
+    const height = 2;
+    // prettier-ignore
+    const pixels = Uint8Array.from([
+      0x00, 0xff,
+      0xff, 0x00,
+    ]);
+    // prettier-ignore
+    const expectedRenderedPixels = Uint8Array.from([
+      0x00, 0x00, 0x00, 0xff,   0xff, 0xff, 0xff, 0xff,
+      0x80, 0x80, 0x80, 0xff,   0x80, 0x80, 0x80, 0xff,
+      0xff, 0xff, 0xff, 0xff,   0x00, 0x00, 0x00, 0xff,
+      0xff, 0xff, 0xff, 0xff,   0x00, 0x00, 0x00, 0xff,
+    ]);
+
+    const monoImage = createImageFromPixelData(
+      width,
+      height,
+      8,
+      8,
+      1,
+      PixelRepresentation.Unsigned,
+      PhotometricInterpretation.Monochrome2,
+      pixels.buffer,
+      TransferSyntax.ExplicitVRLittleEndian
+    );
+    monoImage.setElement('PixelSpacing', [2, 1]);
+
+    const renderingResult = monoImage.render({ windowLevel: new WindowLevel(255, 255 / 2) });
+    expect(renderingResult.frame).to.be.eq(0);
+    expect(renderingResult.width).to.be.eq(width);
+    expect(renderingResult.height).to.be.eq(height * 2);
+
+    const renderedPixels = new Uint8Array(renderingResult.pixels);
+    for (let i = 0; i < renderedPixels.length; i++) {
+      expect(renderedPixels[i]).to.be.eq(expectedRenderedPixels[i]);
+    }
+  });
+
   it('should correctly render an 8-bit grayscale multiframe (MONOCHROME2)', () => {
     [
       TransferSyntax.ImplicitVRLittleEndian,

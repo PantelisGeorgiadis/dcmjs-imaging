@@ -4,6 +4,7 @@ const {
   Pixel,
   PixelConverter,
   PixelPipeline,
+  PixelResizer,
 } = require('./../src/Pixel');
 const {
   PhotometricInterpretation,
@@ -72,6 +73,8 @@ describe('Pixel', () => {
     const bluePaletteColorLookupTableData = [
       Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer,
     ];
+    const pixelSpacingX = 0.5;
+    const pixelSpacingY = 0.3;
     const pixelData = [Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]).buffer];
 
     const image = new DicomImage(
@@ -95,6 +98,7 @@ describe('Pixel', () => {
         RedPaletteColorLookupTableData: redPaletteColorLookupTableData,
         GreenPaletteColorLookupTableData: greenPaletteColorLookupTableData,
         BluePaletteColorLookupTableData: bluePaletteColorLookupTableData,
+        PixelSpacing: [pixelSpacingY, pixelSpacingX],
         PixelData: pixelData,
       },
       TransferSyntax.ImplicitVRLittleEndian
@@ -133,6 +137,8 @@ describe('Pixel', () => {
     expect(new Uint8Array(pixel.getBluePaletteColorLookupTableData()[0])).to.deep.equal(
       new Uint8Array(bluePaletteColorLookupTableData[0])
     );
+    expect(pixel.getPixelSpacingX()).to.be.eq(pixelSpacingX);
+    expect(pixel.getPixelSpacingY()).to.be.eq(pixelSpacingY);
     expect(new Uint8Array(pixel.getPixelData()[0])).to.deep.equal(new Uint8Array(pixelData[0]));
     expect(pixel.toString()).to.be.a('string');
   });
@@ -503,6 +509,31 @@ describe('Pixel', () => {
     const convertedRgbPixels = PixelConverter.hsvToRgb(hsvData);
     for (let i = 0; i < 3 * width * height; i++) {
       expect(convertedRgbPixels[i]).to.be.eq(expectedRgbPixels[i]);
+    }
+  });
+
+  it('should correctly resize RGBA pixels using bilinear interpolation', () => {
+    const srcW = 2;
+    const srcH = 2;
+    const dstW = 4;
+    const dstH = 4;
+    // prettier-ignore
+    const src = Uint8Array.from([
+      0xff, 0x00, 0x00, 0xff,   0x00, 0xff, 0x00, 0xff,
+      0x00, 0x00, 0xff, 0xff,   0x00, 0x00, 0x00, 0xff,
+    ]);
+    // prettier-ignore
+    const expected = Uint8Array.from([
+      0xff, 0x00, 0x00, 0xff,   0x80, 0x80, 0x00, 0xff,   0x00, 0xff, 0x00, 0xff,   0x00, 0xff, 0x00, 0xff,
+      0x80, 0x00, 0x80, 0xff,   0x40, 0x40, 0x40, 0xff,   0x00, 0x80, 0x00, 0xff,   0x00, 0x80, 0x00, 0xff,
+      0x00, 0x00, 0xff, 0xff,   0x00, 0x00, 0x80, 0xff,   0x00, 0x00, 0x00, 0xff,   0x00, 0x00, 0x00, 0xff,
+      0x00, 0x00, 0xff, 0xff,   0x00, 0x00, 0x80, 0xff,   0x00, 0x00, 0x00, 0xff,   0x00, 0x00, 0x00, 0xff,
+    ]);
+
+    const result = PixelResizer.resizeBilinear(src, srcW, srcH, dstW, dstH);
+    expect(result.length).to.be.eq(dstW * dstH * 4);
+    for (let i = 0; i < result.length; i++) {
+      expect(result[i]).to.be.eq(expected[i]);
     }
   });
 });
