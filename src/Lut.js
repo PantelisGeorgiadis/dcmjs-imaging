@@ -1,5 +1,5 @@
+const { ColorPalette } = require('./ColorPalette');
 const { PhotometricInterpretation, StandardColorPalette } = require('./Constants');
-const ColorPalette = require('./ColorPalette');
 const WindowLevel = require('./WindowLevel');
 
 //#region Lut

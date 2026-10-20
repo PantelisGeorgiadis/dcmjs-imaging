@@ -306,39 +306,65 @@ class ColorPalette {
     const redPaletteColorLutData = pixel.getRedPaletteColorLookupTableData();
     const greenPaletteColorLutData = pixel.getGreenPaletteColorLookupTableData();
     const bluePaletteColorLutData = pixel.getBluePaletteColorLookupTableData();
+
+    const segmentedRedPaletteColorLutData = pixel.getSegmentedRedPaletteColorLookupTableData();
+    const segmentedGreenPaletteColorLutData = pixel.getSegmentedGreenPaletteColorLookupTableData();
+    const segmentedBluePaletteColorLutData = pixel.getSegmentedBluePaletteColorLookupTableData();
+    const hasSegmented =
+      segmentedRedPaletteColorLutData !== undefined &&
+      segmentedGreenPaletteColorLutData !== undefined &&
+      segmentedBluePaletteColorLutData !== undefined;
+
     if (
-      redPaletteColorLutData === undefined ||
-      greenPaletteColorLutData === undefined ||
-      bluePaletteColorLutData === undefined
+      !hasSegmented &&
+      (redPaletteColorLutData === undefined ||
+        greenPaletteColorLutData === undefined ||
+        bluePaletteColorLutData === undefined)
     ) {
       throw new Error('Palette color LUT data is missing');
     }
 
-    const r = new Uint8Array(
-      Array.isArray(redPaletteColorLutData)
-        ? redPaletteColorLutData.find((o) => o)
-        : redPaletteColorLutData
-    );
-    const g = new Uint8Array(
-      Array.isArray(greenPaletteColorLutData)
-        ? greenPaletteColorLutData.find((o) => o)
-        : greenPaletteColorLutData
-    );
-    const b = new Uint8Array(
-      Array.isArray(bluePaletteColorLutData)
-        ? bluePaletteColorLutData.find((o) => o)
-        : bluePaletteColorLutData
-    );
-
-    const colorPalette = new Array(size);
-    if (r.length === size) {
+    let colorPalette;
+    if (hasSegmented) {
+      const red = SegmentedColorPalette.expand(segmentedRedPaletteColorLutData);
+      const green = SegmentedColorPalette.expand(segmentedGreenPaletteColorLutData);
+      const blue = SegmentedColorPalette.expand(segmentedBluePaletteColorLutData);
+      size = Math.min(size, red.length, green.length, blue.length);
+      const divisor = (1 << bits) - 1;
+      const r = ColorPalette._scaleTo8Bits(red, divisor);
+      const g = ColorPalette._scaleTo8Bits(green, divisor);
+      const b = ColorPalette._scaleTo8Bits(blue, divisor);
+      colorPalette = new Array(size);
       for (let i = 0; i < size; i++) {
         colorPalette[i] = (0xff << 0x18) | (r[i] << 0x10) | (g[i] << 0x08) | b[i];
       }
     } else {
-      let offset = bits === 16 ? 1 : 0;
-      for (let i = 0; i < size; i++, offset += 2) {
-        colorPalette[i] = (0xff << 0x18) | (r[offset] << 0x10) | (g[offset] << 0x08) | b[offset];
+      const r = new Uint8Array(
+        Array.isArray(redPaletteColorLutData)
+          ? redPaletteColorLutData.find((o) => o)
+          : redPaletteColorLutData
+      );
+      const g = new Uint8Array(
+        Array.isArray(greenPaletteColorLutData)
+          ? greenPaletteColorLutData.find((o) => o)
+          : greenPaletteColorLutData
+      );
+      const b = new Uint8Array(
+        Array.isArray(bluePaletteColorLutData)
+          ? bluePaletteColorLutData.find((o) => o)
+          : bluePaletteColorLutData
+      );
+
+      colorPalette = new Array(size);
+      if (r.length === size) {
+        for (let i = 0; i < size; i++) {
+          colorPalette[i] = (0xff << 0x18) | (r[i] << 0x10) | (g[i] << 0x08) | b[i];
+        }
+      } else {
+        let offset = bits === 16 ? 1 : 0;
+        for (let i = 0; i < size; i++, offset += 2) {
+          colorPalette[i] = (0xff << 0x18) | (r[offset] << 0x10) | (g[offset] << 0x08) | b[offset];
+        }
       }
     }
 
@@ -372,6 +398,24 @@ class ColorPalette {
 
   //#region Private Methods
   /**
+   * Scales 16-bit palette entries down to 8-bit values.
+   * @method
+   * @static
+   * @private
+   * @param {Uint16Array} values - 16-bit palette entries.
+   * @param {number} divisor - Maximum entry value, typically (1 << bits) - 1.
+   * @returns {Uint8Array} 8-bit palette values.
+   */
+  static _scaleTo8Bits(values, divisor) {
+    const scaled = new Uint8Array(values.length);
+    for (let i = 0; i < values.length; i++) {
+      scaled[i] = Math.round((Math.min(values[i], divisor) * 255) / divisor);
+    }
+
+    return scaled;
+  }
+
+  /**
    * Gets a grayscale color palette.
    * @method
    * @static
@@ -391,6 +435,163 @@ class ColorPalette {
 }
 //#endregion
 
+//#region SegmentedColorPalette
+class SegmentedColorPalette {
+  /**
+   * Expands a segmented palette color lookup table into 16-bit palette entries.
+   * @method
+   * @static
+   * @param {ArrayBuffer|ArrayBufferView|Array<number>} segmentData - Raw segmented palette data.
+   * @returns {Uint16Array} Expanded 16-bit palette entries.
+   * @throws {Error} If the segmented palette data is empty or invalid.
+   */
+  static expand(segmentData) {
+    const data = SegmentedColorPalette._toUint16Array(segmentData);
+    if (data.length === 0) {
+      throw new Error('Segmented palette data is empty');
+    }
+
+    const expanded = [];
+    SegmentedColorPalette._expandSegments(data, 0, data.length, expanded);
+    if (expanded.length === 0) {
+      throw new Error('Segmented palette could not be expanded');
+    }
+
+    return Uint16Array.from(expanded);
+  }
+
+  /**
+   * Converts raw element data to a 16-bit unsigned integer array.
+   * @method
+   * @static
+   * @private
+   * @param {ArrayBuffer|ArrayBufferView|Array<number>|Object} value - Raw element data.
+   * @returns {Uint16Array} 16-bit unsigned integer array.
+   * @throws {Error} If the raw element data type is unsupported.
+   */
+  static _toUint16Array(value) {
+    if (value === undefined || value === null) {
+      return new Uint16Array(0);
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return new Uint16Array(0);
+      }
+      if (typeof value[0] === 'number') {
+        return Uint16Array.from(value);
+      }
+      // element values may be sparse arrays, e.g. [undefined, ArrayBuffer]
+      const first = value.find((o) => o);
+      if (first === undefined) {
+        return new Uint16Array(0);
+      }
+      return SegmentedColorPalette._toUint16Array(first);
+    }
+
+    if (value instanceof Uint16Array) {
+      return value;
+    }
+    if (value instanceof ArrayBuffer) {
+      return new Uint16Array(value.slice(0, value.byteLength - (value.byteLength % 2)));
+    }
+    if (ArrayBuffer.isView(value)) {
+      // Align the view to an even byte offset before reinterpreting it as 16-bit words
+      const byteOffset = value.byteOffset % 2 === 0 ? value.byteOffset : value.byteOffset + 1;
+      const byteLength = Math.floor((value.byteOffset + value.byteLength) / 2) * 2 - byteOffset;
+      return new Uint16Array(value.buffer.slice(byteOffset, byteOffset + byteLength));
+    }
+
+    throw new Error(`Unsupported segmented palette data type [${typeof value}]`);
+  }
+
+  /**
+   * Expands the segments in [start, end) of the raw data, appending the 16-bit entries
+   * to the expanded palette.
+   * @method
+   * @static
+   * @private
+   * @param {Uint16Array} data - Raw segmented palette data.
+   * @param {number} start - Start index (in 16-bit words) of the segment range.
+   * @param {number} end - End index (in 16-bit words) of the segment range.
+   * @param {Array<number>} expanded - Expanded palette entries (appended to).
+   * @throws {Error} If a segment opcode or indirect segment offset is invalid.
+   */
+  static _expandSegments(data, start, end, expanded) {
+    let pos = start;
+    while (pos < end) {
+      const opcode = data[pos++];
+      if (opcode === 0) {
+        // Discrete segment: opcode, length, values
+        const length = data[pos++];
+        if (pos + length > end) {
+          throw new Error('Segmented color palette discrete segment length out of range');
+        }
+        for (let k = 0; k < length; k++, pos++) {
+          expanded.push(data[pos]);
+        }
+      } else if (opcode === 1) {
+        // Linear segment: opcode, length, end value
+        if (pos + 1 >= end) {
+          throw new Error('Segmented color palette linear segment is truncated');
+        }
+        const length = data[pos++];
+        const endValue = data[pos++];
+        const startValue = expanded.length > 0 ? expanded[expanded.length - 1] : 0;
+        for (let k = 1; k <= length; k++) {
+          expanded.push(Math.round(startValue + (k * (endValue - startValue)) / length));
+        }
+      } else if (opcode === 2) {
+        // Indirect segment: opcode, number of segments, 32-bit byte offset (low word first)
+        const numSegments = data[pos++];
+        const offsetLow = data[pos++];
+        const offsetHigh = data[pos++];
+        const byteOffset = offsetLow + offsetHigh * 0x10000;
+        if (byteOffset % 2 !== 0) {
+          throw new Error(
+            `Segmented color palette indirect segment has misaligned offset [${byteOffset}]`
+          );
+        }
+        const wordOffset = byteOffset / 2;
+        if (wordOffset >= end) {
+          throw new Error(
+            `Segmented color palette indirect segment offset out of range [${byteOffset}]`
+          );
+        }
+
+        // compute the number of words covered by the referenced segments
+        let wordsEnd = wordOffset;
+        let probe = wordOffset;
+        for (let k = 0; k < numSegments; k++) {
+          if (probe >= end) {
+            throw new Error('Segmented color palette indirect segment count out of range');
+          }
+          const referencedOpcode = data[probe++];
+          if (referencedOpcode === 0) {
+            probe += 1 + data[probe];
+            wordsEnd = probe;
+          } else if (referencedOpcode === 1) {
+            probe += 2;
+            wordsEnd = probe;
+          } else {
+            throw new Error(
+              `Segmented color palette indirect segment has invalid opcode [${referencedOpcode}]`
+            );
+          }
+          if (wordsEnd > end) {
+            throw new Error('Segmented color palette indirect segment length out of range');
+          }
+        }
+
+        SegmentedColorPalette._expandSegments(data, wordOffset, wordsEnd, expanded);
+      } else {
+        throw new Error(`Segmented color palette has invalid opcode [${opcode}]`);
+      }
+    }
+  }
+}
+//#endregion
+
 //#region Exports
-module.exports = ColorPalette;
+module.exports = { ColorPalette, SegmentedColorPalette };
 //#endregion

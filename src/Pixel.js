@@ -56,6 +56,18 @@ class Pixel {
       elements,
       'BluePaletteColorLookupTableData'
     );
+    this.segmentedRedPaletteColorLookupTableData = this._getElement(
+      elements,
+      'SegmentedRedPaletteColorLookupTableData'
+    );
+    this.segmentedGreenPaletteColorLookupTableData = this._getElement(
+      elements,
+      'SegmentedGreenPaletteColorLookupTableData'
+    );
+    this.segmentedBluePaletteColorLookupTableData = this._getElement(
+      elements,
+      'SegmentedBluePaletteColorLookupTableData'
+    );
     this.pixelData = this._getElement(elements, 'PixelData');
     this.floatPixelData = this._getElement(elements, 'FloatPixelData');
     this.pixelSpacingX = 1.0;
@@ -346,6 +358,33 @@ class Pixel {
    */
   getBluePaletteColorLookupTableData() {
     return this.bluePaletteColorLookupTableData;
+  }
+
+  /**
+   * Gets the segmented red palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Segmented red palette color lookup table data.
+   */
+  getSegmentedRedPaletteColorLookupTableData() {
+    return this.segmentedRedPaletteColorLookupTableData;
+  }
+
+  /**
+   * Gets the segmented green palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Segmented green palette color lookup table data.
+   */
+  getSegmentedGreenPaletteColorLookupTableData() {
+    return this.segmentedGreenPaletteColorLookupTableData;
+  }
+
+  /**
+   * Gets the segmented blue palette color lookup table data.
+   * @method
+   * @returns {Array<ArrayBuffer>} Segmented blue palette color lookup table data.
+   */
+  getSegmentedBluePaletteColorLookupTableData() {
+    return this.segmentedBluePaletteColorLookupTableData;
   }
 
   /**

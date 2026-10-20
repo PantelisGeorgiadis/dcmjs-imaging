@@ -5,9 +5,9 @@ const {
   StandardColorPalette,
   TransferSyntax,
 } = require('./../src/Constants');
+const { ColorPalette } = require('./../src/ColorPalette');
 const DicomImage = require('./../src/DicomImage');
 const WindowLevel = require('./../src/WindowLevel');
-const ColorPalette = require('./../src/ColorPalette');
 
 const { createImageFromPixelData } = require('./utils');
 

@@ -12,11 +12,11 @@ const {
   RgbColorLutPipeline,
   VoiLut,
 } = require('./../src/Lut');
+const { ColorPalette } = require('./../src/ColorPalette');
 const { Pixel } = require('./../src/Pixel');
 const { PhotometricInterpretation, TransferSyntax } = require('./../src/Constants');
 const DicomImage = require('./../src/DicomImage');
 const WindowLevel = require('./../src/WindowLevel');
-const ColorPalette = require('./../src/ColorPalette');
 
 const { getRandomInteger, getRandomNumber } = require('./utils');
 

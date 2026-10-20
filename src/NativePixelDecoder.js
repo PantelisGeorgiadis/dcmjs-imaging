@@ -153,8 +153,8 @@ class NativePixelDecoder {
         ? PixelRepresentation.Signed
         : PixelRepresentation.Unsigned,
       planarConfiguration: pixel.getPlanarConfiguration()
-        ? PlanarConfiguration.Interleaved
-        : PlanarConfiguration.Planar,
+        ? PlanarConfiguration.Planar
+        : PlanarConfiguration.Interleaved,
       photometricInterpretation: pixel.getPhotometricInterpretation(),
       encodedBuffer: data,
     });
